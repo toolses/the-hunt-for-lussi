@@ -1333,15 +1333,19 @@ scene("start", () => {
     selectedCharacter = character;
     if (!bgMusicPlaying) {
       // iOS Safari blokkerer lyd til bruker-interaksjon.
-      // Lag en midlertidig AudioContext og resume den for å varme opp iOS audio.
+      // Resume Kaplay sin egen AudioContext under dette klikket/tappet.
       try {
-        var Ctx = window.AudioContext || window["webkitAudioContext"];
-        if (Ctx) {
-          var tempCtx = new Ctx();
-          tempCtx.resume().then(function() { tempCtx.close(); });
+        var ctx = audioCtx;
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().then(function() {
+            play("bgmusic", { loop: true, volume: 0.4 });
+          });
+        } else {
+          play("bgmusic", { loop: true, volume: 0.4 });
         }
-      } catch(e) {}
-      play("bgmusic", { loop: true, volume: 0.4 });
+      } catch(e) {
+        play("bgmusic", { loop: true, volume: 0.4 });
+      }
       bgMusicPlaying = true;
     }
     go("etasje2_kjokken");
