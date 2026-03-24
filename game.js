@@ -9,10 +9,13 @@
 kaplay({
   width: 800,
   height: 600,
-  letterbox: true,     // Bevarer aspektforhold på alle skjermstørrelser
+  letterbox: true,        // Bevarer aspektforhold (4:3 — matcher iPad perfekt)
   background: [30, 30, 50],
-  gravity: 0,          // Top-down spill — ingen gravitasjon
+  gravity: 0,             // Top-down spill — ingen gravitasjon
   debug: false,
+  pixelDensity: 1,        // Ikke bruk devicePixelRatio — sparer GPU på retina-skjermer
+  crisp: true,            // Skarp pikselkunst (nearest-neighbor skalering)
+  touchToMouse: true,     // Mapp touch-events til mus-events automatisk
 });
 
 // ────────────────────────────────────────────────────────────
