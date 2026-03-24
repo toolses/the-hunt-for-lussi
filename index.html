@@ -42,9 +42,50 @@
       -webkit-user-select: none;
       user-select: none;
     }
+
+    /* Roter-melding når iPad holdes i portrett */
+    #rotate-msg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #1a1a2e;
+      color: #fff;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: sans-serif;
+      text-align: center;
+      gap: 16px;
+    }
+    #rotate-msg .icon {
+      font-size: 64px;
+      animation: wiggle 1.5s ease-in-out infinite;
+    }
+    #rotate-msg p {
+      font-size: 20px;
+      color: #ccc;
+    }
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-20deg); }
+      75% { transform: rotate(20deg); }
+    }
+
+    /* Vis melding kun i portrett-modus på touch-enheter */
+    @media (orientation: portrait) and (pointer: coarse) {
+      #rotate-msg { display: flex; }
+      canvas { display: none !important; }
+    }
   </style>
 </head>
 <body>
+  <!-- Melding om å rotere enheten -->
+  <div id="rotate-msg">
+    <div class="icon">📱</div>
+    <p>Snu iPaden sidelengs<br>for å spille!</p>
+  </div>
+
   <!-- Kaplay v3 game engine loaded from CDN -->
   <script src="https://unpkg.com/kaplay@3001.0.19/dist/kaplay.js"></script>
   <!-- All game logic -->
