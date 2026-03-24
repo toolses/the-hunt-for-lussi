@@ -1329,6 +1329,15 @@ scene("start", () => {
   function startGame(character) {
     selectedCharacter = character;
     if (!bgMusicPlaying) {
+      // iOS Safari blokkerer lyd til bruker-interaksjon.
+      // Lag en midlertidig AudioContext og resume den for å varme opp iOS audio.
+      try {
+        var Ctx = window.AudioContext || window["webkitAudioContext"];
+        if (Ctx) {
+          var tempCtx = new Ctx();
+          tempCtx.resume().then(function() { tempCtx.close(); });
+        }
+      } catch(e) {}
       play("bgmusic", { loop: true, volume: 0.4 });
       bgMusicPlaying = true;
     }
