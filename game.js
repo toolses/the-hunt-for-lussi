@@ -19,6 +19,20 @@ kaplay({
 });
 
 // ────────────────────────────────────────────────────────────
+// iOS-LYDFIX: iOS Safari fryser AudioContext i bakgrunnen.
+// Gjenoppta automatisk når appen kommer i forgrunnen igjen,
+// ellers vil all lyd og musikk feile stille etter app-bytte
+// eller skjermlock.
+// ────────────────────────────────────────────────────────────
+function _ensureAudio() {
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+}
+document.addEventListener("visibilitychange", function() { if (!document.hidden) _ensureAudio(); });
+window.addEventListener("focus",              _ensureAudio);
+window.addEventListener("pageshow",           _ensureAudio);
+document.addEventListener("touchstart",       _ensureAudio, { passive: true });
+
+// ────────────────────────────────────────────────────────────
 // ASSETS — Tilesets og sprites fra Modern Interiors
 // ────────────────────────────────────────────────────────────
 
@@ -74,6 +88,18 @@ loadSprite("si_sofa",          MI + "LivingRoom/Living_Room_Singles_35.png");  /
 loadSprite("si_coffee_table",  MI + "LivingRoom/Living_Room_Singles_107.png"); // 32×48
 loadSprite("si_dining_table",  MI + "LivingRoom/Living_Room_Singles_53.png");  // 32×32
 loadSprite("si_kitchen_table", MI + "Kitchen/Kitchen_Singles_165.png");   // 32×48
+
+// ── Utendørs — Modern Exteriors (dedikerte spritesheets) ────
+const ME = "assets/Modern_Exteriors/";
+loadSprite("me_house",        ME + "24_Additional_Houses_Terraced_House_3_16x16.png");       // 192×256 — spillerens hus
+loadSprite("me_house_nb",     ME + "24_Additional_Houses_One_Story_House_16x16.png");        // 256×224 — nabohus
+loadSprite("me_house_nb2",    ME + "24_Additional_Houses_Terraced_House_Modular_6_16x16.png"); // 160×240 — nabohus 2
+loadSprite("me_tree_sm",      ME + "ME_Singles_City_Props_16x16_Tree_3.png");                // 32×48
+loadSprite("me_tree_md",      ME + "ME_Singles_City_Props_16x16_Tree_6.png");                // 32×64
+loadSprite("me_tree_lg",      ME + "ME_Singles_City_Props_16x16_Tree_12.png");               // 48×64
+loadSprite("me_bush_lg",      ME + "ME_Singles_Garden_16x16_Bush_22.png");                   // 48×32
+loadSprite("me_bush_sm",      ME + "ME_Singles_Garden_16x16_Bush_14.png");                   // 32×16
+loadSprite("me_trampoline",   ME + "ME_Singles_Villas_16x16_Villa_Yard_Toy_Trampoline_1.png"); // 48×80
 
 // ── Lussi (Cat_Grey) — idle og løpe-animasjon ──────────────
 // Spritesheet: 320x2944, 32x32 per frame, 10 kolonner
@@ -861,58 +887,57 @@ scene("gata", (args) => {
 
   const spawnPos = SPAWNS.gata_default;
 
-  // ── Bakgrunn (gress og vei) ───────────────────────────────
-  // TODO: replace with tilemap("outdoor_ground") when pixel art is ready
-  makeDeco(0, 0, 1200, 800, [80, 140, 70]);   // Grønt gress
-  makeDeco(0, 380, 1200, 80, [120, 110, 100]); // Grå vei midt på
+  // ── Bakgrunn ──────────────────────────────────────────────
+  makeDeco(-400, -200, 2000, 1400, [75, 145, 65]);   // Grønt gress (dekker alt kamera kan se)
+  makeDeco(-400,  380,  2000,  80, [110, 100, 88]);  // Grå vei
 
-  // ── Husfasade (venstre vegg — kant mot huset) ────────────
-  // TODO: replace with sprite("house_facade") when pixel art is ready
-  makeWall(0, 0, 32, 800, [130, 120, 110]);
+  // ── Usynlige grensevegger ─────────────────────────────────
+  makeWall(-32, 0,    32, 800);  // Venstre
+  makeWall(1200, 0,   32, 800);  // Høyre
+  makeWall(0, -32, 1200,  32);   // Topp
+  makeWall(0,  800, 1200,  32);  // Bunn
 
-  // ── Hekk/gjerde øverst og nederst ────────────────────────
-  // TODO: replace with sprite("hedge") or sprite("fence") when pixel art is ready
-  makeWall(32, 0,   1200, 32, [50, 100, 50]);  // Topp-hekk
-  makeWall(32, 768, 1200, 32, [50, 100, 50]);  // Bunn-hekk
+  // ── Hus ───────────────────────────────────────────────────
+  makeSpriteDeco(-40, -60,  "me_house",    2  ); // Spillerens hus  (192×256 → 384×512)
+  makeSpriteDeco(440,   0,  "me_house_nb2",1.5); // Nabohus, midt   (160×240 → 240×360)
+  makeSpriteDeco(820,  20,  "me_house_nb", 1.5); // Nabohus, høyre  (256×224 → 384×336)
 
-  // ── Høyregrense ──────────────────────────────────────────
-  makeWall(1168, 0, 32, 800, [130, 120, 110]);
-
-  // ── Trær og busker (statiske hindringer) ─────────────────
-  // TODO: replace with sprite("tree") or sprite("bush_static") when pixel art is ready
-  const treesAndHedges = [
-    [200, 50,  60, 80],   // Tre
-    [350, 40,  50, 70],   // Tre
-    [550, 60,  55, 75],   // Tre
-    [750, 45,  60, 80],   // Tre
-    [950, 55,  50, 70],   // Tre
-    [200, 640, 80, 60],   // Hekk nede
-    [400, 650, 100, 50],  // Hekk nede
-    [700, 640, 80, 60],   // Hekk nede
-    [900, 650, 90, 50],   // Hekk nede
-  ];
-  for (const [tx, ty, tw, th] of treesAndHedges) {
-    makeWall(tx, ty, tw, th, [34, 110, 34]);
+  // ── Sprite-hindringer ─────────────────────────────────────
+  function makeObstacle(x, y, name, sc) {
+    add([ sprite(name), pos(x, y), scale(sc),
+          area(), body({ isStatic: true, gravityScale: 0 }), z(2), "wall" ]);
   }
+  // Trær langs husrekke (sidewalk-nivå)
+  makeObstacle(200,  275, "me_tree_sm",  2); // 32×48 → 64×96
+  makeObstacle(365,  255, "me_tree_md",  2); // 32×64 → 64×128
+  makeObstacle(605,  255, "me_tree_lg",  2); // 48×64 → 96×128
+  makeObstacle(770,  275, "me_tree_sm",  2); // 32×48 → 64×96
+  makeObstacle(1020, 255, "me_tree_md",  2); // 32×64 → 64×128
+  // Busker langs nedre kant
+  makeObstacle(150, 625, "me_bush_lg",   4); // 48×32 → 192×128
+  makeObstacle(440, 635, "me_bush_sm",   5); // 32×16 → 160×80
+  makeObstacle(675, 625, "me_bush_lg",   4);
+  makeObstacle(925, 635, "me_bush_sm",   5);
 
-  // ── Gastein / søppelkasse (grå dekor) ────────────────────
-  // TODO: replace with sprite("bin") when pixel art is ready
+  // ── Trampoline (dekor i hagen) ────────────────────────────
+  makeSpriteDeco(140, 190, "me_trampoline", 2); // 48×80 → 96×160
+
+  // ── Søppelkasse ───────────────────────────────────────────
   makeWall(400, 410, 40, 40, [100, 100, 110]);
   makeWall(800, 420, 40, 40, [100, 100, 110]);
 
   // ── Ristende busk (animert) ───────────────────────────────
-  // TODO: replace with animated sprite("shaking_bush") when pixel art is ready
   const ristendeBusk = add([
-    rect(48, 48),
+    sprite("me_bush_lg"),
     pos(600, 290),
-    color(34, 139, 34),
+    scale(3),
     area(),
     anchor("center"),
     rotate(0),
+    z(2),
     "busk",
   ]);
 
-  // Enkel vingle-animasjon: roterer frem og tilbake
   let shakeDir = 1;
   ristendeBusk.onUpdate(() => {
     ristendeBusk.angle += shakeDir * 45 * dt();
@@ -921,18 +946,13 @@ scene("gata", (args) => {
   });
 
   // ── Potespor videre i gata ────────────────────────────────
-  // TODO: replace with sprite("pawprint") when pixel art is ready
   const pawsGata = [
     [80, 470], [120, 460], [150, 450], [200, 440],
     [270, 430], [340, 420], [420, 415], [500, 410],
     [580, 430], [660, 460], [740, 490], [820, 500],
   ];
   for (const [px, py] of pawsGata) {
-    add([
-      circle(4),
-      pos(px, py),
-      color(101, 67, 33),
-    ]);
+    add([ circle(4), pos(px, py), color(101, 67, 33) ]);
   }
 
   // ── Lussi (katten — Cat_Grey sprite) ──────────────────────
@@ -1062,21 +1082,15 @@ scene("gata", (args) => {
     lussiIndicator.pos = vec2(lussi.pos.x, lussi.pos.y - 28);
   });
 
-  // ── Dør tilbake til huset (brun firkant) ──────────────────
-  // TODO: replace with sprite("door_back") when pixel art is ready
+  // ── Dør tilbake til huset (usynlig kollisjonsboks) ────────
   const doorHjem = add([
     rect(32, 80),
     pos(32, 440),
-    color(101, 67, 33),
+    color(0, 0, 0),
+    opacity(0),
     area(),
     anchor("topleft"),
     "door_etasje1",
-  ]);
-  add([
-    text("Inn", { size: 12 }),
-    pos(48, 480),
-    anchor("center"),
-    color(255, 230, 180),
   ]);
 
   // ── Spillerfigur ─────────────────────────────────────────
