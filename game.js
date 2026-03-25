@@ -48,37 +48,32 @@ loadSpriteAtlas(ASSET + "Interiors_free/32x32/Room_Builder_free_32x32.png", {
   "wall_face":     { x: 128, y: 352, width: 32, height: 32 },  // Solid vegg-farge
 });
 
-// Møbler fra Interiors-tileset (32x32 per tile, 512x2048 — beskåret for Kaplay-kompatibilitet)
+// Resterende atlas-møbler (sprites uten dedikert enkeltfil)
 loadSpriteAtlas(ASSET + "Interiors_free/32x32/Interiors_free_32x32_cropped.png", {
-  // Senger (øverst i tileset)
-  "bed_green":    { x: 0,   y: 0,    width: 96,  height: 128 }, // Grønn seng (3x4)
-  "bed_teal":     { x: 160, y: 0,    width: 96,  height: 96 },  // Blågrønn seng m/ramme (3x3)
-  // Bord (rad 10, y=320)
-  "table_sm":       { x: 0,   y: 320,  width: 64,  height: 64 },  // Lite bord (kant av lang benk)
-  // Frittstående bord (y=672)
-  "table_sq":       { x: 128, y: 672,  width: 32,  height: 64 },  // Kvadratisk bord (1x2)
-  // Rug/teppe (rad 14, y=448)
-  "rug":            { x: 128, y: 448,  width: 96,  height: 64 },  // Teppe (3x2)
-  // Bokhyller
-  "bookshelf_sm":   { x: 64,  y: 384,  width: 64,  height: 64 },  // Glassmonter (2x2)
-  "bookshelf_books":{ x: 160, y: 448,  width: 64,  height: 64 },  // Bokhylle m/bøker (2x2)
-  // Garderobe/skap (rad 57-58, y=1824)
-  "wardrobe":       { x: 0,   y: 1824, width: 64,  height: 64 },  // Garderobe
-  // Kommode (rad 10, y=320)
-  "dresser":        { x: 128, y: 320,  width: 64,  height: 32 },  // Kommode/benk
-  // Skrivebord med PC (rad 8-9, y=256)
-  "computer_desk":  { x: 96,  y: 256,  width: 32,  height: 64 },  // PC-pult (1x2)
-  // ── Baderomsutstyr (y=64-256) ────────────────────────────────────────────────
-  "bathtub":         { x: 0,   y: 160,  width: 96,  height: 128 }, // Badekar (3x4)
-  "washing_machine": { x: 96,  y: 64,   width: 32,  height: 64 },  // Vaskemaskin (1x2)
-  "fridge":          { x: 96,  y: 160,  width: 32,  height: 64 },  // Kjøleskap (1x2) — hvit dør
-  "toilet":          { x: 192, y: 224,  width: 32,  height: 32 },  // Toalett (1x1)
-  "sink":            { x: 192, y: 224,  width: 64,  height: 32 },  // Vask (2x1)
-  // ── Stue-møbler (y=576) ──────────────────────────────────────────────────────
-  "sofa":            { x: 256, y: 576,  width: 96,  height: 64 },  // Sofa (3x2) — 4th tile at x=352 is a green rug, excluded
-  // ── Soverom — dobbeltseng (y=1408) ───────────────────────────────────────────
-  "bed_double":      { x: 160, y: 1408, width: 96,  height: 128 }, // Dobbeltseng (3x4)
+  // Skrivebord med PC — ingen erstatning i Modern_Interiors/
+  "computer_desk":    { x: 96,  y: 256,  width: 32,  height: 64 },  // PC-pult (1x2)
+  // Kjøleskap — ingen erstatning i Modern_Interiors/
+  "fridge":           { x: 96,  y: 160,  width: 32,  height: 64 },  // Kjøleskap (1x2) — hvit dør
+  // Bokhylle — ingen erstatning i Modern_Interiors/
+  "bookshelf_books":  { x: 160, y: 448,  width: 64,  height: 64 },  // Bokhylle m/bøker (2x2)
+  // Teppe
+  "rug":              { x: 128, y: 448,  width: 96,  height: 64 },  // Teppe (3x2)
 });
+
+// ── Enkeltmøbler fra Modern_Interiors (dedikerte spritesheets) ──────
+const MI = "assets/Modern_Interiors/";
+loadSprite("si_bed_single",    MI + "Bedroom/Bedroom_Singles_191.png");   // 16×48 — single bed
+loadSprite("si_bed",           MI + "Bedroom/Bedroom_Singles_266.png");   // 32×48 — double bed
+loadSprite("si_dresser",       MI + "Bedroom/Bedroom_Singles_392.png");   // 32×32
+loadSprite("si_wardrobe",      MI + "Bedroom/Bedroom_Singles_520.png");   // 16×48 — wardrobe / closet
+loadSprite("si_bathtub",       MI + "Bathroom/Bathroom_Singles_132.png"); // 16×32
+loadSprite("si_toilet",        MI + "Bathroom/Bathroom_Singles_50.png");  // 16×48
+loadSprite("si_sink",          MI + "Bathroom/Bathroom_Singles_12.png");  // 32×48
+loadSprite("si_washer",        MI + "Bathroom/Bathroom_Singles_89.png");  // 32×48
+loadSprite("si_sofa",          MI + "LivingRoom/Living_Room_Singles_35.png");  // 32×32
+loadSprite("si_coffee_table",  MI + "LivingRoom/Living_Room_Singles_107.png"); // 32×48
+loadSprite("si_dining_table",  MI + "LivingRoom/Living_Room_Singles_53.png");  // 32×32
+loadSprite("si_kitchen_table", MI + "Kitchen/Kitchen_Singles_165.png");   // 32×48
 
 // ── Lussi (Cat_Grey) — idle og løpe-animasjon ──────────────
 // Spritesheet: 320x2944, 32x32 per frame, 10 kolonner
@@ -606,10 +601,10 @@ scene("etasje1_ylva", (args) => {
   makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(260), WALL_T, rh(80), "door_etasje1_gang", "Gang →");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(550), ry(220), "bed_green", 1.5);          // Seng (høyre side)
-  makeSpriteDeco(rx(30),  ry(380), "wardrobe", 2);             // Garderobe (nedre venstre)
-  makeSpriteDeco(rx(30),  ry(20),  "computer_desk", 2);        // PC-pult (øvre venstre)
-  makeSpriteDeco(rx(350), ry(25),  "bookshelf_books", 2);      // Bokhylle (øvre midt)
+  makeSpriteDeco(rx(550), ry(220), "si_bed_single", 3); // Seng (16×48 → 48×144)
+  makeSpriteDeco(rx(30),  ry(380), "si_wardrobe",   3); // Garderobe (16×48 → 48×144)
+  makeSpriteDeco(rx(30),  ry(20),  "computer_desk", 2); // PC-pult — atlas
+  makeSpriteDeco(rx(350), ry(25),  "bookshelf_books",2); // Bokhylle — atlas (64×64 → 128×128)
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -649,11 +644,10 @@ scene("etasje1_vetle", (args) => {
   makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_T, rw(80), WALL_T, "door_etasje1_gang", "Gang ↓");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(575), ry(50),  "bed_teal",        1.5); // Seng — 96×96 → 144×144
-  makeSpriteDeco(rx(460), ry(55),  "table_sm",        1  ); // Nattbord — 64×64
-  makeSpriteDeco(rx(50),  ry(50),  "computer_desk",   2  ); // Skrivebord — 32×64 → 64×128
-  makeSpriteDeco(rx(50),  ry(380), "bookshelf_books", 2  ); // Bokhylle — 64×64 → 128×128
-  makeSpriteDeco(rx(350), ry(50),  "wardrobe",        2  ); // Garderobe — 64×64 → 128×128
+  makeSpriteDeco(rx(575), ry(50),  "si_bed_single",  3); // Seng (16×48 → 48×144)
+  makeSpriteDeco(rx(50),  ry(50),  "computer_desk",  2); // Skrivebord — atlas
+  makeSpriteDeco(rx(50),  ry(380), "bookshelf_books",2); // Bokhylle — atlas (64×64 → 128×128)
+  makeSpriteDeco(rx(350), ry(50),  "si_wardrobe",    3); // Garderobe (16×48 → 48×144)
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -693,10 +687,10 @@ scene("etasje1_bad", (args) => {
   makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(300), WALL_T, rh(80), "door_etasje1_gang", "Gang →");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(50),  ry(50),  "bathtub",         1.5); // Badekar — 96×128 → 144×192
-  makeSpriteDeco(rx(595), ry(50),  "sink",            2  ); // Vask — 32×64 → 64×128
-  makeSpriteDeco(rx(590), ry(340), "toilet",          2  ); // Toalett — 32×64 → 64×128
-  makeSpriteDeco(rx(50),  ry(340), "washing_machine", 2  ); // Vaskemaskin — 32×64 → 64×128
+  makeSpriteDeco(rx(50),  ry(50),  "si_bathtub", 4); // Badekar (16×32 → 64×128)
+  makeSpriteDeco(rx(595), ry(50),  "si_sink",    2); // Vask (32×48 → 64×96)
+  makeSpriteDeco(rx(590), ry(340), "si_toilet",  3); // Toalett (16×48 → 48×144)
+  makeSpriteDeco(rx(50),  ry(340), "si_washer",  2); // Vaskemaskin (32×48 → 64×96)
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -745,10 +739,10 @@ scene("etasje2_stue", (args) => {
         anchor("center"), color(120, 110, 100), opacity(0.4) ]);
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(30),  ry(100), "bookshelf_books", 2  ); // Bokhylle — 64×64 → 128×128
-  makeSpriteDeco(rx(80),  ry(450), "sofa",            1.5); // Sofa — 128×64 → 192×96
-  makeSpriteDeco(rx(150), ry(300), "table_sq",        1.5); // Sofabord — 32×64 → 48×96
-  makeSpriteDeco(rx(280), ry(180), "table_sq",        1.5); // Spisebord — 32×64 → 48×96
+  makeSpriteDeco(rx(30),  ry(100), "bookshelf_books",  2  ); // Bokhylle — atlas (64×64 → 128×128)
+  makeSpriteDeco(rx(80),  ry(450), "si_sofa",        3  ); // Sofa (32×32 → 96×96)
+  makeSpriteDeco(rx(150), ry(300), "si_coffee_table",2  ); // Sofabord (32×48 → 64×96)
+  makeSpriteDeco(rx(280), ry(180), "si_dining_table",3  ); // Spisebord (32×32 → 96×96)
 
   // ── Rom-etiketter ───────────────────────────────────────────
   add([ text("Stue", { size: 12 }), pos(rx(300), ry(300)), anchor("center"),
@@ -786,10 +780,9 @@ scene("etasje2_mamma", (args) => {
   makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_T, rw(80), WALL_T, "door_etasje2_stue", "Stue ↓");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(490), ry(50),  "bed_double", 1.5); // Dobbeltseng — 96×128 → 144×192
-  makeSpriteDeco(rx(430), ry(60),  "table_sm",   1  ); // Nattbord — 64×64
-  makeSpriteDeco(rx(50),  ry(50),  "dresser",    2  ); // Kommode — 64×32 → 128×64
-  makeSpriteDeco(rx(50),  ry(350), "wardrobe",   2  ); // Garderobe — 64×64 → 128×128
+  makeSpriteDeco(rx(490), ry(50),  "si_bed",      3); // Seng (32×48 → 96×144)
+  makeSpriteDeco(rx(50),  ry(50),  "si_dresser",  3); // Kommode (32×32 → 96×96)
+  makeSpriteDeco(rx(50),  ry(350), "si_wardrobe", 3); // Garderobe (16×48 → 48×144)
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -820,8 +813,8 @@ scene("etasje2_kjokken", (args) => {
 
   // ── Møbler ──────────────────────────────────────────────────
   makeDeco(rx(736), ry(24),  rw(40),  rh(552), [80, 60, 40]);    // Benk langs høyre vegg
-  makeSpriteDeco(rx(50),  ry(80),  "table_sm", 2); // Kjøkkenbord — 64×64 → 128×128
-  makeSpriteDeco(rx(50),  ry(400), "fridge",   2); // Kjøleskap — 32×96 → 64×192
+  makeSpriteDeco(rx(50),  ry(80),  "si_kitchen_table", 2); // Kjøkkenbord (32×48 → 64×96)
+  makeSpriteDeco(rx(50),  ry(400), "fridge",            2); // Kjøleskap — atlas
   makeDeco(rx(300), ry(30),  rw(160), rh(40),  [80, 60, 40]);    // Benk langs toppvegg
 
   // ── Mat-skål (ved bordet) ───────────────────────────────────
