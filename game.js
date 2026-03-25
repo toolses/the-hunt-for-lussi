@@ -80,7 +80,10 @@ loadSprite("si_bed_single",    MI + "Bedroom/Bedroom_Singles_191.png");   // 16�
 loadSprite("si_bed",           MI + "Bedroom/Bedroom_Singles_266.png");   // 32×48 — double bed
 loadSprite("si_dresser",       MI + "Bedroom/Bedroom_Singles_392.png");   // 32×32
 loadSprite("si_wardrobe",      MI + "Bedroom/Bedroom_Singles_520.png");   // 16×48 — wardrobe / closet
-loadSprite("si_bathtub",       MI + "Bathroom/Bathroom_Singles_132.png"); // 16×32
+loadSprite("si_bathtub",       MI + "Bathroom/animated_bathtub_2.png", {
+  sliceX: 4,
+  anims: { splash: { from: 0, to: 3, speed: 4, loop: true } },
+});
 loadSprite("si_toilet",        MI + "Bathroom/Bathroom_Singles_50.png");  // 16×48
 loadSprite("si_sink",          MI + "Bathroom/Bathroom_Singles_12.png");  // 32×48
 loadSprite("si_washer",        MI + "Bathroom/Bathroom_Singles_89.png");  // 32×48
@@ -175,6 +178,7 @@ loadSound("lyd_matskaal", "assets/voice/lussi-bowl.m4a");
 loadSound("lyd_vetle_rom", "assets/Voice/vetle-rom.m4a");
 loadSound("lyd_ylva_rom", "assets/Voice/ylva-rom.m4a");
 loadSound("lyd_gaat_ut", "assets/Voice/har-lussi-gaat-ut.m4a");
+loadSound("lyd_lussi_gjemt_inne", "assets/Voice/lussi-gjemt-seg-inne.m4a");
 
 // ────────────────────────────────────────────────────────────
 // KONSTANTER
@@ -182,6 +186,18 @@ loadSound("lyd_gaat_ut", "assets/Voice/har-lussi-gaat-ut.m4a");
 
 const PLAYER_SPEED = 200;
 let bgMusicPlaying = false;
+
+// ── Innendørs Lussi-jakt — rom-status ───────────────────
+let roomsSearched = {
+  etasje2_stue: false, etasje2_mamma: false,
+  etasje1_vetle: false, etasje1_ylva: false, etasje1_bad: false,
+};
+function allRoomsSearched() {
+  return Object.values(roomsSearched).every(function(v) { return v; });
+}
+function resetRoomsSearched() {
+  for (var k in roomsSearched) roomsSearched[k] = false;
+}
 
 // ── Rom-skalering (90 % av viewport, sentrert) ─────────────
 const ROOM_OX = 94;    // X-offset (margin venstre/høyre)
@@ -248,7 +264,7 @@ const SPAWNS = {
   "etasje2_kjokken_fra_etasje2_stue": vec2(rx(400), ry(500)),
 
   // Gata (uforandret — utenfor huset)
-  "gata_default":                    vec2(120, 480),
+  "gata_default":                    vec2(195, 388),  // Rett foran inngangsdøren til hus 1
 };
 
 // ────────────────────────────────────────────────────────────
@@ -439,6 +455,79 @@ function showMessage(msg, duration) {
 }
 
 /**
+ * Legger til en gjemt Lussi i et rom med proximity-trigger og rømningsanimasjon.
+ * roomKey:      nøkkel i roomsSearched (f.eks. "etasje1_ylva")
+ * hidePos:      {x, y} der Lussi gjemmer seg (bak møbel)
+ * indicatorPos: {x, y} der "?" vises (nær møbelkant)
+ * doorTarget:   {x, y} der Lussi løper til (dør-posisjon)
+ * player:       spillerobjektet
+ * triggerDist:  avstand for proximity-trigger (standard 60)
+ */
+function addRoomLussi(roomKey, hidePos, indicatorPos, doorTarget, player, triggerDist) {
+  if (roomsSearched[roomKey]) return;
+
+  triggerDist = triggerDist || 60;
+
+  // Lussi — gjemt bak møbel (z=0, møbler er z=1)
+  var lussi = add([
+    sprite("lussi"),
+    pos(hidePos.x, hidePos.y),
+    scale(1.5),
+    anchor("center"),
+    z(0),
+    "roomLussi",
+  ]);
+  lussi.play("idle");
+  lussi.flipX = (doorTarget.x < hidePos.x);
+
+  // "?" indikator — synlig over møbler (z=2)
+  var baseY = indicatorPos.y;
+  var indicator = add([
+    text("?", { size: 18 }),
+    pos(indicatorPos.x, indicatorPos.y),
+    anchor("center"),
+    color(255, 255, 100),
+    opacity(0.8),
+    z(2),
+  ]);
+  indicator.onUpdate(function() {
+    indicator.pos.y = baseY + Math.sin(time() * 3) * 3;
+  });
+
+  // Proximity-trigger
+  var triggered = false;
+  player.onUpdate(function() {
+    if (triggered) return;
+    if (player.pos.dist(lussi.pos) < triggerDist) {
+      triggered = true;
+      roomsSearched[roomKey] = true;
+
+      // Lussi dukker opp
+      lussi.z = 10;
+      if (indicator.exists()) destroy(indicator);
+
+      // Kort pause før hun stikker av
+      wait(0.3, function() {
+        lussi.play("run");
+        lussi.flipX = (doorTarget.x < lussi.pos.x);
+        showMessage("Mjau! Lussi stakk av!", 1.5);
+
+        var speed = 280;
+        var moveHandler = lussi.onUpdate(function() {
+          var dir = vec2(doorTarget.x, doorTarget.y).sub(lussi.pos);
+          if (dir.len() < 12) {
+            moveHandler.cancel();
+            if (lussi.exists()) destroy(lussi);
+            return;
+          }
+          lussi.move(dir.unit().scale(speed));
+        });
+      });
+    }
+  });
+}
+
+/**
  * Lager selve spillerfiguren med valgt karakter-sprite.
  */
 // Retningsnavn for animasjoner
@@ -590,23 +679,33 @@ scene("etasje1_gang", (args) => {
   onDoor(player, "door_etasje1_bad",   "etasje1_bad",   "etasje1_gang", fra);
   onDoor(player, "door_etasje1_ylva",  "etasje1_ylva",  "etasje1_gang", fra);
   onDoor(player, "door_etasje1_vetle", "etasje1_vetle", "etasje1_gang", fra);
-  onDoor(player, "door_gata",          "gata",          "etasje1_gang", fra);
   onDoor(player, "stairs_up",          "etasje2_stue",  "etasje1_gang", fra);
 
-  // ── Stemme + tekst (spilles når spilleren er nær door_gata) ──
-  var gangVoicePlayed = false;
-  onUpdate(function() {
-    if (gangVoicePlayed) return;
-    var door = get("door_gata")[0];
-    if (!door) return;
-    if (player.pos.dist(door.pos) < 100) {
-      gangVoicePlayed = true;
+  // ── Ytterdør — sperret til alle rom er sjekket ─────────────
+  var gataReady = (fra === "gata") ? false : true;
+  if (!gataReady) wait(1, function() { gataReady = true; });
+
+  if (allRoomsSearched()) {
+    wait(0.5, function() {
       showMessage("Kanskje Lussi har gått ut?", 3);
       play("lyd_gaat_ut");
+    });
+  }
+
+  player.onCollide("door_gata", function() {
+    if (!gataReady) return;
+    if (allRoomsSearched()) {
+      go("gata", { fra: "etasje1_gang" });
+    } else {
+      showMessage("Kanskje Lussi har gjemt seg\ni ett av rommene?", 3);
+      play("lyd_lussi_gjemt_inne");
     }
   });
 
   // ── UI ──────────────────────────────────────────────────────
+  var searched = Object.values(roomsSearched).filter(function(v) { return v; }).length;
+  add([ text("Rom: " + searched + "/5", { size: 13 }), pos(780, 10), fixed(),
+        anchor("topright"), color(255, 255, 100), opacity(0.7), z(50) ]);
   add([ text("1. Etasje — Gang", { size: 14 }), pos(10, 10), fixed(),
         color(200, 200, 200), opacity(0.6), z(50) ]);
 });
@@ -636,15 +735,12 @@ scene("etasje1_ylva", (args) => {
   var player = makePlayer(spawnPos);
   setupControls(player, false);
 
-  // ── Stemme + tekst ─────────────────────────────────────────
-  var ylvaVoicePlayed = false;
-  wait(2, function() {
-    if (!ylvaVoicePlayed) {
-      ylvaVoicePlayed = true;
-      showMessage("Nei, ingen Lussi på Ylva sitt rom", 3);
-      play("lyd_ylva_rom");
-    }
-  });
+  // ── Lussi gjemmer seg bak bokhyllen ────────────────────────
+  addRoomLussi("etasje1_ylva",
+    { x: rx(390), y: ry(80) },   // Bak bokhyllen
+    { x: rx(420), y: ry(20) },   // "?" over bokhyllen
+    { x: ROOM_OX + ROOM_W, y: ry(300) },  // Løper til døren (høyre vegg)
+    player);
 
   // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_ylva", fra);
@@ -679,18 +775,15 @@ scene("etasje1_vetle", (args) => {
   var player = makePlayer(spawnPos);
   setupControls(player, false);
 
+  // ── Lussi gjemmer seg bak garderoben ───────────────────────
+  addRoomLussi("etasje1_vetle",
+    { x: rx(370), y: ry(100) },  // Bak garderoben
+    { x: rx(400), y: ry(45) },   // "?" over garderoben
+    { x: rx(400), y: ROOM_OY + ROOM_H + 10 },  // Løper til døren (bunn vegg)
+    player);
+
   // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_vetle", fra);
-
-  // ── Stemme + tekst ────────────────────────────────────────
-  var vetleVoicePlayed = false;
-  wait(2, function() {
-    if (!vetleVoicePlayed) {
-      vetleVoicePlayed = true;
-      showMessage("Ingen Lussi på Vetle sitt rom", 3);
-      play("lyd_vetle_rom");
-    }
-  });
 
   // ── UI ──────────────────────────────────────────────────────
   add([ text("Vetle sitt soverom", { size: 14 }), pos(10, 10), fixed(),
@@ -713,7 +806,7 @@ scene("etasje1_bad", (args) => {
   makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(300), WALL_T, rh(80), "door_etasje1_gang", "Gang →");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(50),  ry(50),  "si_bathtub", 4); // Badekar (16×32 → 64×128)
+  makeSpriteDeco(rx(50),  ry(50),  "si_bathtub", 4).play("splash"); // Badekar — animert
   makeSpriteDeco(rx(595), ry(50),  "si_sink",    2); // Vask (32×48 → 64×96)
   makeSpriteDeco(rx(590), ry(340), "si_toilet",  3); // Toalett (16×48 → 48×144)
   makeSpriteDeco(rx(50),  ry(340), "si_washer",  2); // Vaskemaskin (32×48 → 64×96)
@@ -721,6 +814,13 @@ scene("etasje1_bad", (args) => {
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
+
+  // ── Lussi gjemmer seg bak badekaret ────────────────────────
+  addRoomLussi("etasje1_bad",
+    { x: rx(80), y: ry(100) },   // Bak badekaret
+    { x: rx(110), y: ry(45) },   // "?" over badekaret
+    { x: ROOM_OX + ROOM_W, y: ry(340) },  // Løper til døren (høyre vegg)
+    player);
 
   // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_bad", fra);
@@ -780,8 +880,14 @@ scene("etasje2_stue", (args) => {
   var player = makePlayer(spawnPos);
   setupControls(player, false);
 
+  // ── Lussi gjemmer seg under spisebordet ────────────────────
+  addRoomLussi("etasje2_stue",
+    { x: rx(310), y: ry(220) },  // Under spisebordet
+    { x: rx(340), y: ry(175) },  // "?" over bordet
+    { x: rx(440), y: ROOM_OY },  // Løper til Mammas dør (topp vegg)
+    player);
+
   // ── Kollisjon: dører ────────────────────────────────────────
-  onDoor(player, "door_etasje2_kjokken", "etasje2_kjokken", "etasje2_stue", fra);
   onDoor(player, "door_etasje2_mamma",   "etasje2_mamma",   "etasje2_stue", fra);
   onDoor(player, "stairs_down",           "etasje1_gang",    "etasje2_stue", fra);
 
@@ -813,6 +919,13 @@ scene("etasje2_mamma", (args) => {
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
+
+  // ── Lussi gjemmer seg under sengen ─────────────────────────
+  addRoomLussi("etasje2_mamma",
+    { x: rx(520), y: ry(120) },  // Under sengen
+    { x: rx(550), y: ry(45) },   // "?" over sengen
+    { x: rx(400), y: ROOM_OY + ROOM_H + 10 },  // Løper til døren (bunn vegg)
+    player);
 
   // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje2_stue", "etasje2_stue", "etasje2_mamma", fra);
@@ -888,86 +1001,81 @@ scene("gata", (args) => {
   const spawnPos = SPAWNS.gata_default;
 
   // ── Bakgrunn ──────────────────────────────────────────────
-  makeDeco(-400, -200, 2000, 1400, [75, 145, 65]);   // Grønt gress (dekker alt kamera kan se)
-  makeDeco(-400,  380,  2000,  80, [110, 100, 88]);  // Grå vei
+  makeDeco(-25,   0, 1225, 800, [75, 145, 65]);   // Grønt gress — nøyaktig fra venstre til høyre barriere
+  makeDeco(-25, 380, 1225,  80, [110, 100, 88]);  // Grå vei
 
   // ── Usynlige grensevegger ─────────────────────────────────
-  makeWall(-32, 0,    32, 800);  // Venstre
-  makeWall(1200, 0,   32, 800);  // Høyre
-  makeWall(0, -32, 1200,  32);   // Topp
-  makeWall(0,  800, 1200,  32);  // Bunn
+  for (const [x, y, w, h] of [[-57,0,32,800],[1200,0,32,800],[-25,-32,1225,32],[-25,800,1225,32]]) {
+    add([ rect(w, h), pos(x, y), opacity(0), area(), body({ isStatic: true, gravityScale: 0 }), "wall" ]);
+  }
 
   // ── Hus ───────────────────────────────────────────────────
-  makeSpriteDeco(-40, -60,  "me_house",    2  ); // Spillerens hus  (192×256 → 384×512)
-  makeSpriteDeco(440,   0,  "me_house_nb2",1.5); // Nabohus, midt   (160×240 → 240×360)
-  makeSpriteDeco(820,  20,  "me_house_nb", 1.5); // Nabohus, høyre  (256×224 → 384×336)
+  makeSpriteDeco(0,   0, "me_house",    1.5); // Spillerens hus  (192×256 → 288×384)
+  makeSpriteDeco(440, 0, "me_house_nb2",1.5); // Nabohus, midt   (160×240 → 240×360)
+  makeSpriteDeco(790, 0, "me_house_nb", 1.5); // Nabohus, høyre  (256×224 → 384×336)
+
+  // ── Usynlige kollisjonsvegger rundt hus ──────────────────
+  function addWall(x, y, w, h) {
+    add([rect(w, h), pos(x, y), opacity(0), area(), body({ isStatic: true, gravityScale: 0 }), "wall"]);
+  }
+  // Hus 1 (x=0–288, y=0–384) — døråpning ved x=160–230 (matcher door-trigger)
+  addWall(  0, 372, 160, 15);  // Bunn, venstre for dør
+  addWall(230, 372,  58, 15);  // Bunn, høyre for dør
+  addWall(278,   0,  10, 372); // Høyre side
+  // Hus 2 (x=440–680, y=0–360)
+  addWall(440, 348, 240, 15);  // Bunn
+  addWall(440,   0,  10, 348); // Venstre side
+  addWall(670,   0,  10, 348); // Høyre side
+  // Hus 3 (x=790–1174, y=0–336)
+  addWall(790, 324, 384, 15);  // Bunn
+  addWall(790,   0,  10, 324); // Venstre side
+  addWall(1164,  0,  10, 324); // Høyre side
 
   // ── Sprite-hindringer ─────────────────────────────────────
   function makeObstacle(x, y, name, sc) {
     add([ sprite(name), pos(x, y), scale(sc),
           area(), body({ isStatic: true, gravityScale: 0 }), z(2), "wall" ]);
   }
-  // Trær langs husrekke (sidewalk-nivå)
-  makeObstacle(200,  275, "me_tree_sm",  2); // 32×48 → 64×96
-  makeObstacle(365,  255, "me_tree_md",  2); // 32×64 → 64×128
-  makeObstacle(605,  255, "me_tree_lg",  2); // 48×64 → 96×128
-  makeObstacle(770,  275, "me_tree_sm",  2); // 32×48 → 64×96
-  makeObstacle(1020, 255, "me_tree_md",  2); // 32×64 → 64×128
-  // Busker langs nedre kant
-  makeObstacle(150, 625, "me_bush_lg",   4); // 48×32 → 192×128
-  makeObstacle(440, 635, "me_bush_sm",   5); // 32×16 → 160×80
-  makeObstacle(675, 625, "me_bush_lg",   4);
-  makeObstacle(925, 635, "me_bush_sm",   5);
+  // Trær kun i gapene mellom husene (ikke oppå husene)
+  // Gap1: x=288–440 | Gap2: x=680–790
+  makeObstacle(299, 255, "me_tree_sm", 2); // 32×48 → 64×96 — mellom hus 1 og 2
+  makeObstacle(690, 265, "me_tree_sm", 2); // 32×48 → 64×96 — mellom hus 2 og 3
 
-  // ── Trampoline (dekor i hagen) ────────────────────────────
-  makeSpriteDeco(140, 190, "me_trampoline", 2); // 48×80 → 96×160
+  // Trampoline i hagen mellom hus 1 og 2
+  makeSpriteDeco(307, 50, "me_trampoline", 1.5); // 48×80 → 72×120
 
-  // ── Søppelkasse ───────────────────────────────────────────
-  makeWall(400, 410, 40, 40, [100, 100, 110]);
-  makeWall(800, 420, 40, 40, [100, 100, 110]);
+  // Busker langs nedre kant (under veien — ingen kollisjon)
+  makeSpriteDeco(150, 625, "me_bush_lg", 4);
+  makeSpriteDeco(440, 635, "me_bush_sm", 5);
+  makeSpriteDeco(675, 625, "me_bush_lg", 4);
+  makeSpriteDeco(925, 635, "me_bush_sm", 5);
 
-  // ── Ristende busk (animert) ───────────────────────────────
-  const ristendeBusk = add([
-    sprite("me_bush_lg"),
-    pos(600, 290),
-    scale(3),
-    area(),
-    anchor("center"),
-    rotate(0),
-    z(2),
-    "busk",
-  ]);
-
-  let shakeDir = 1;
-  ristendeBusk.onUpdate(() => {
-    ristendeBusk.angle += shakeDir * 45 * dt();
-    if (ristendeBusk.angle >  14) shakeDir = -1;
-    if (ristendeBusk.angle < -14) shakeDir =  1;
-  });
-
-  // ── Potespor videre i gata ────────────────────────────────
+  // ── Potespor fra inngangsdøren og bort til busken der Lussi gjemmer seg ──
   const pawsGata = [
-    [80, 470], [120, 460], [150, 450], [200, 440],
-    [270, 430], [340, 420], [420, 415], [500, 410],
-    [580, 430], [660, 460], [740, 490], [820, 500],
+    [130, 388], [133, 398], [138, 409],          // Fra trappa ned til gata
+    [155, 420], [210, 428], [295, 432],           // Bortover veien mot høyre
+    [390, 433], [490, 432], [590, 430],
+    [690, 432], [795, 438], [890, 448],           // Videre langs veien
+    [960, 460], [990, 478], [1005, 498],          // Sving ned mot gresset
+    [1010, 528], [1012, 560], [1010, 595], [1003, 630], [1001, 658], // Ned til busken
   ];
   for (const [px, py] of pawsGata) {
     add([ circle(4), pos(px, py), color(101, 67, 33) ]);
   }
 
-  // ── Lussi (katten — Cat_Grey sprite) ──────────────────────
+  // ── Lussi (katten — gjemmer seg bak busken til høyre) ─────
   const lussi = add([
     sprite("lussi"),
-    pos(920, 500),
+    pos(1005, 675),
     scale(2),
     area({ shape: new Rect(vec2(4, 4), 24, 24) }),
     anchor("center"),
-    z(10),
+    z(0),          // Under busken (z=1) — skjult til hun stikker av
     "lussi",
   ]);
   lussi.play("idle");
   lussi.currentAnim = "idle";
-  lussi.flipX = true;   // Starter vendt mot venstre (mot spilleren)
+  lussi.flipX = true;   // Vendt mot venstre (mot spilleren)
 
   // ── Jakt-mekanikk: Lussi stikker av minst 5 ganger ─────────
   let lussiEscapes = 0;
@@ -976,13 +1084,11 @@ scene("gata", (args) => {
   let lussiCatchable = false;
   let lussiCooldown = false;
 
-  // Gyldige fluktsteder (unngår trær, vegger, veien)
+  // Gyldige fluktsteder — veien (y~400-460) og nedre gress (y~480-700), unngår alle hus
   const escapeSpots = [
-    vec2(150, 200), vec2(450, 180), vec2(700, 150),
-    vec2(1000, 200), vec2(1100, 300), vec2(1050, 550),
-    vec2(850, 680), vec2(500, 700), vec2(250, 650),
-    vec2(150, 550), vec2(400, 300), vec2(650, 550),
-    vec2(900, 350), vec2(300, 550), vec2(550, 500),
+    vec2(200, 420), vec2(370, 415), vec2(560, 430), vec2(750, 420), vec2(1000, 430),
+    vec2(110, 510), vec2(310, 530), vec2(560, 510), vec2(760, 525), vec2(1050, 500),
+    vec2(200, 640), vec2(480, 625), vec2(710, 645), vec2(940, 630),
   ];
 
   // Spørsmålstegn / utropstegn over Lussi
@@ -1022,6 +1128,7 @@ scene("gata", (args) => {
     if (lussiRunning || lussiCooldown) return;
     lussiRunning = true;
     lussiEscapes++;
+    lussi.z = 10;  // Kom frem fra gjemmestedet — synlig nå
 
     // Velg en tilfeldig fluktposisjon blant de beste kandidatene
     var candidates = [];
@@ -1082,10 +1189,10 @@ scene("gata", (args) => {
     lussiIndicator.pos = vec2(lussi.pos.x, lussi.pos.y - 28);
   });
 
-  // ── Dør tilbake til huset (usynlig kollisjonsboks) ────────
+  // ── Dør tilbake til huset (usynlig kollisjonsboks ved inngangen til hus 1) ──
   const doorHjem = add([
-    rect(32, 80),
-    pos(32, 440),
+    rect(70, 75),
+    pos(160, 300),
     color(0, 0, 0),
     opacity(0),
     area(),
@@ -1097,14 +1204,40 @@ scene("gata", (args) => {
   const player = makePlayer(spawnPos);
   setupControls(player, true);
 
-  // ── Kollisjon: ristende busk ──────────────────────────────
-  let buskMsgShown = false;
-  player.onCollide("busk", () => {
-    if (!buskMsgShown) {
-      buskMsgShown = true;
-      showMessage("Åh, det var bare en fugl!", 3);
-      wait(4, () => { buskMsgShown = false; });
+  // ── Kameragrenser: aldri vis utenfor barrierer ─────────────
+  // Playbar sone: x=-25–1200, y=0–800. Viewport: 800×600.
+  // Kamera-senter-grenser: x=[375,800], y=[300,500]
+  player.onUpdate(() => {
+    setCamPos(vec2(
+      Math.max(375, Math.min(800, camPos().x)),
+      Math.max(300, Math.min(500, camPos().y))
+    ));
+  });
+
+  // ── Trampolineffekt: spretter opp/ned + squash-and-stretch ──
+  // Trampolinen er på pos(307,50) scale=1.5 → 72×120 → sone x=310–376, y=72–160
+  const TRAM_X1 = 310, TRAM_X2 = 376, TRAM_Y1 = 72, TRAM_Y2 = 160;
+  let tramPhase = 0;
+  let tramActive = false;
+
+  player.onUpdate(() => {
+    const onTram = player.pos.x > TRAM_X1 && player.pos.x < TRAM_X2 &&
+                   player.pos.y > TRAM_Y1 && player.pos.y < TRAM_Y2;
+    if (onTram) {
+      const prevPhase = tramPhase;
+      tramPhase += dt() * 8;
+      // Delta-metode: legger til endringen per bilde — beholder naturlig bevegelse
+      const db = Math.abs(Math.sin(tramPhase)) - Math.abs(Math.sin(prevPhase));
+      player.pos.y -= db * 20;
+      // Squash & stretch: smal+høy øverst, bred+lav nederst
+      const b = Math.abs(Math.sin(tramPhase));
+      player.scale.x = 2 - b * 0.35;
+      player.scale.y = 2 + b * 0.50;
+    } else if (tramActive) {
+      player.scale = vec2(2, 2);
+      tramPhase = 0;
     }
+    tramActive = onTram;
   });
 
   // ── Kollisjon: Lussi — flukt eller fangst! ─────────────────
@@ -1392,6 +1525,7 @@ scene("start", () => {
   // Klikk-handling
   function startGame(character) {
     selectedCharacter = character;
+    resetRoomsSearched();
     if (!bgMusicPlaying) {
       // iOS Safari blokkerer lyd til bruker-interaksjon.
       // Resume Kaplay sin egen AudioContext under dette klikket/tappet.

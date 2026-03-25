@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate App Icon</title></head>
+<body style="background:#333; color:#fff; font-family:sans-serif; padding:20px;">
+<h2>Jakten på Lussi — App Icon Generator</h2>
+<p>Right-click the image below and "Save Image As..." → <code>apple-touch-icon.png</code> in the project root.</p>
+<canvas id="icon" width="180" height="180"></canvas>
+<br><br>
+<a id="dl" download="apple-touch-icon.png" style="color:#4af; font-size:18px;">Download icon (180×180)</a>
+
+<script>
+const c = document.getElementById("icon");
+const ctx = c.getContext("2d");
+const W = 180;
+
+// Background — dark blue matching game bg
+ctx.fillStyle = "#1a1a2e";
+ctx.fillRect(0, 0, W, W);
+
+// Rounded corners mask (iOS does this automatically, but nice for preview)
+// Draw a paw print — simple, recognizable, fits the cat theme
+
+// Helper: draw a filled ellipse
+function ellipse(cx, cy, rx, ry, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Cat paw — centered, white/light
+const pawColor = "#f0e6d3";
+const padColor = "#e8a0b0";
+
+// Main pad (large, bottom-center)
+ellipse(90, 115, 30, 25, padColor);
+
+// Toe pads (4 smaller circles above)
+ellipse(52, 72, 14, 16, padColor);
+ellipse(78, 56, 14, 16, padColor);
+ellipse(104, 56, 14, 16, padColor);
+ellipse(130, 72, 14, 16, padColor);
+
+// Inner pad details — slightly darker centers
+const innerColor = "#d4849a";
+ellipse(90, 117, 22, 18, innerColor);
+ellipse(52, 74, 9, 11, innerColor);
+ellipse(78, 58, 9, 11, innerColor);
+ellipse(104, 58, 9, 11, innerColor);
+ellipse(130, 74, 9, 11, innerColor);
+
+// Title text at top
+ctx.fillStyle = "#ffffff";
+ctx.font = "bold 14px sans-serif";
+ctx.textAlign = "center";
+ctx.fillText("LUSSI", 90, 20);
+
+// Download link
+document.getElementById("dl").href = c.toDataURL("image/png");
+</script>
+</body>
+</html>
