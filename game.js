@@ -1247,21 +1247,6 @@ scene("vinn", () => {
   knapp.onHover(() => { knapp.color = rgb(80, 180, 80); });
   knapp.onHoverEnd(() => { knapp.color = rgb(60, 130, 60); });
   knapp.onClick(() => { go("start"); });
-
-  // Alternativt: trykk hvilken som helst tast for å starte på nytt
-  add([
-    text("— eller trykk på hvilken som helst tast —", { size: 13, align: "center" }),
-    pos(center().add(0, 210)),
-    anchor("center"),
-    color(160, 160, 200),
-    fixed(),
-    z(10),
-  ]);
-
-  onKeyPress(() => { go("start"); });
-  wait(1, () => {
-    onMousePress(() => { go("start"); });
-  });
 });
 
 // ────────────────────────────────────────────────────────────
