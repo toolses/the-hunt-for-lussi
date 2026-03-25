@@ -48,23 +48,36 @@ loadSpriteAtlas(ASSET + "Interiors_free/32x32/Room_Builder_free_32x32.png", {
   "wall_face":     { x: 128, y: 352, width: 32, height: 32 },  // Solid vegg-farge
 });
 
-// Møbler fra Interiors-tileset (32x32 per tile, 512x2848)
-loadSpriteAtlas(ASSET + "Interiors_free/32x32/Interiors_free_32x32.png", {
+// Møbler fra Interiors-tileset (32x32 per tile, 512x2048 — beskåret for Kaplay-kompatibilitet)
+loadSpriteAtlas(ASSET + "Interiors_free/32x32/Interiors_free_32x32_cropped.png", {
   // Senger (øverst i tileset)
-  "bed_green":    { x: 32,  y: 0,    width: 64,  height: 96 },  // Grønn seng (2x3)
+  "bed_green":    { x: 0,   y: 0,    width: 96,  height: 128 }, // Grønn seng (3x4)
   "bed_teal":     { x: 160, y: 0,    width: 96,  height: 96 },  // Blågrønn seng m/ramme (3x3)
-  // Sofa (rad 72-73, y=2304)
-  "sofa":         { x: 32,  y: 2304, width: 96,  height: 64 },  // Sofa (3x2)
   // Bord (rad 10, y=320)
-  "table_sm":     { x: 0,   y: 320,  width: 64,  height: 64 },  // Lite bord (2x2)
+  "table_sm":       { x: 0,   y: 320,  width: 64,  height: 64 },  // Lite bord (kant av lang benk)
+  // Frittstående bord (y=672)
+  "table_sq":       { x: 128, y: 672,  width: 32,  height: 64 },  // Kvadratisk bord (1x2)
   // Rug/teppe (rad 14, y=448)
-  "rug":          { x: 128, y: 448,  width: 96,  height: 64 },  // Teppe (3x2)
-  // Bokhylle (rad 12-13, y=384)
-  "bookshelf_sm": { x: 64,  y: 384,  width: 64,  height: 64 },  // Bokhylle (2x2)
+  "rug":            { x: 128, y: 448,  width: 96,  height: 64 },  // Teppe (3x2)
+  // Bokhyller
+  "bookshelf_sm":   { x: 64,  y: 384,  width: 64,  height: 64 },  // Glassmonter (2x2)
+  "bookshelf_books":{ x: 160, y: 448,  width: 64,  height: 64 },  // Bokhylle m/bøker (2x2)
   // Garderobe/skap (rad 57-58, y=1824)
-  "wardrobe":     { x: 0,   y: 1824, width: 64,  height: 64 },  // Garderobe
+  "wardrobe":       { x: 0,   y: 1824, width: 64,  height: 64 },  // Garderobe
   // Kommode (rad 10, y=320)
-  "dresser":      { x: 128, y: 320,  width: 64,  height: 32 },  // Kommode/benk
+  "dresser":        { x: 128, y: 320,  width: 64,  height: 32 },  // Kommode/benk
+  // Skrivebord med PC (rad 8-9, y=256)
+  "computer_desk":  { x: 96,  y: 256,  width: 32,  height: 64 },  // PC-pult (1x2)
+  // ── Baderomsutstyr (y=64-256) ────────────────────────────────────────────────
+  "bathtub":         { x: 0,   y: 160,  width: 96,  height: 128 }, // Badekar (3x4)
+  "washing_machine": { x: 96,  y: 64,   width: 32,  height: 64 },  // Vaskemaskin (1x2)
+  "fridge":          { x: 96,  y: 160,  width: 32,  height: 64 },  // Kjøleskap (1x2) — hvit dør
+  "toilet":          { x: 192, y: 224,  width: 32,  height: 32 },  // Toalett (1x1)
+  "sink":            { x: 192, y: 224,  width: 64,  height: 32 },  // Vask (2x1)
+  // ── Stue-møbler (y=576) ──────────────────────────────────────────────────────
+  "sofa":            { x: 256, y: 576,  width: 96,  height: 64 },  // Sofa (3x2) — 4th tile at x=352 is a green rug, excluded
+  // ── Soverom — dobbeltseng (y=1408) ───────────────────────────────────────────
+  "bed_double":      { x: 160, y: 1408, width: 96,  height: 128 }, // Dobbeltseng (3x4)
 });
 
 // ── Lussi (Cat_Grey) — idle og løpe-animasjon ──────────────
@@ -137,6 +150,10 @@ loadSprite("vetle", ASSET + "Characters_free/Adam_idle_16x16.png", {
 
 // ── Lyd / musikk ────────────────────────────────────────────
 loadSound("bgmusic", "assets/Music/Track 1 (Let's Go).wav");
+loadSound("lyd_matskaal", "assets/voice/lussi-bowl.m4a");
+loadSound("lyd_vetle_rom", "assets/Voice/vetle-rom.m4a");
+loadSound("lyd_ylva_rom", "assets/Voice/ylva-rom.m4a");
+loadSound("lyd_gaat_ut", "assets/Voice/har-lussi-gaat-ut.m4a");
 
 // ────────────────────────────────────────────────────────────
 // KONSTANTER
@@ -241,6 +258,20 @@ function makeDeco(x, y, w, h, col) {
     rect(w, h),
     pos(x, y),
     color(...col),
+  ]);
+}
+
+/**
+ * Lager en dekorativ gjenstand med sprite fra tileset.
+ * sc: uniform skaleringsfaktor (standard 1 = native størrelse).
+ */
+function makeSpriteDeco(x, y, spriteName, sc) {
+  sc = sc || 1;
+  return add([
+    sprite(spriteName),
+    pos(x, y),
+    scale(sc),
+    z(1),
   ]);
 }
 
@@ -541,6 +572,19 @@ scene("etasje1_gang", (args) => {
   onDoor(player, "door_gata",          "gata",          "etasje1_gang", fra);
   onDoor(player, "stairs_up",          "etasje2_stue",  "etasje1_gang", fra);
 
+  // ── Stemme + tekst (spilles når spilleren er nær door_gata) ──
+  var gangVoicePlayed = false;
+  onUpdate(function() {
+    if (gangVoicePlayed) return;
+    var door = get("door_gata")[0];
+    if (!door) return;
+    if (player.pos.dist(door.pos) < 100) {
+      gangVoicePlayed = true;
+      showMessage("Kanskje Lussi har gått ut?", 3);
+      play("lyd_gaat_ut");
+    }
+  });
+
   // ── UI ──────────────────────────────────────────────────────
   add([ text("1. Etasje — Gang", { size: 14 }), pos(10, 10), fixed(),
         color(200, 200, 200), opacity(0.6), z(50) ]);
@@ -562,24 +606,26 @@ scene("etasje1_ylva", (args) => {
   makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(260), WALL_T, rh(80), "door_etasje1_gang", "Gang →");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeDeco(rx(676), ry(380), rw(100), rh(180), [160, 120, 140]); // Seng
-  makeDeco(rx(50),  ry(480), rw(140), rh(70),  [140, 110, 80]);  // Kommode
-  makeDeco(rx(50),  ry(50),  rw(120), rh(80),  [120, 100, 80]);  // Skrivebord
-  makeDeco(rx(50),  ry(200), rw(80),  rh(100), [100, 80,  60]);  // Bokhylle
-
-  // ── Usynlig "mjau"-sone ─────────────────────────────────────
-  add([ rect(rw(120), rh(120)), pos(rx(350), ry(300)), color(0, 0, 0), opacity(0),
-        area(), anchor("topleft"), "meow_zone" ]);
+  makeSpriteDeco(rx(550), ry(220), "bed_green", 1.5);          // Seng (høyre side)
+  makeSpriteDeco(rx(30),  ry(380), "wardrobe", 2);             // Garderobe (nedre venstre)
+  makeSpriteDeco(rx(30),  ry(20),  "computer_desk", 2);        // PC-pult (øvre venstre)
+  makeSpriteDeco(rx(350), ry(25),  "bookshelf_books", 2);      // Bokhylle (øvre midt)
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
 
-  // ── Kollisjon ───────────────────────────────────────────────
-  var meowTriggered = false;
-  player.onCollide("meow_zone", function() {
-    if (!meowTriggered) { meowTriggered = true; showMessage("MJAU!", 1); }
+  // ── Stemme + tekst ─────────────────────────────────────────
+  var ylvaVoicePlayed = false;
+  wait(2, function() {
+    if (!ylvaVoicePlayed) {
+      ylvaVoicePlayed = true;
+      showMessage("Nei, ingen Lussi på Ylva sitt rom", 3);
+      play("lyd_ylva_rom");
+    }
   });
+
+  // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_ylva", fra);
 
   // ── UI ──────────────────────────────────────────────────────
@@ -603,10 +649,11 @@ scene("etasje1_vetle", (args) => {
   makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_T, rw(80), WALL_T, "door_etasje1_gang", "Gang ↓");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeDeco(rx(676), ry(50),  rw(100), rh(180), [160, 100, 120]); // Seng
-  makeDeco(rx(610), ry(60),  rw(60),  rh(60),  [120, 90,  70]);  // Nattbord
-  makeDeco(rx(50),  ry(50),  rw(120), rh(80),  [100, 80,  60]);  // Skrivebord
-  makeDeco(rx(50),  ry(400), rw(100), rh(120), [80,  80,  200]); // Bokhylle
+  makeSpriteDeco(rx(575), ry(50),  "bed_teal",        1.5); // Seng — 96×96 → 144×144
+  makeSpriteDeco(rx(460), ry(55),  "table_sm",        1  ); // Nattbord — 64×64
+  makeSpriteDeco(rx(50),  ry(50),  "computer_desk",   2  ); // Skrivebord — 32×64 → 64×128
+  makeSpriteDeco(rx(50),  ry(380), "bookshelf_books", 2  ); // Bokhylle — 64×64 → 128×128
+  makeSpriteDeco(rx(350), ry(50),  "wardrobe",        2  ); // Garderobe — 64×64 → 128×128
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -614,6 +661,16 @@ scene("etasje1_vetle", (args) => {
 
   // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_vetle", fra);
+
+  // ── Stemme + tekst ────────────────────────────────────────
+  var vetleVoicePlayed = false;
+  wait(2, function() {
+    if (!vetleVoicePlayed) {
+      vetleVoicePlayed = true;
+      showMessage("Ingen Lussi på Vetle sitt rom", 3);
+      play("lyd_vetle_rom");
+    }
+  });
 
   // ── UI ──────────────────────────────────────────────────────
   add([ text("Vetle sitt soverom", { size: 14 }), pos(10, 10), fixed(),
@@ -636,10 +693,10 @@ scene("etasje1_bad", (args) => {
   makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(300), WALL_T, rh(80), "door_etasje1_gang", "Gang →");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeDeco(rx(50),  ry(50),  rw(200), rh(90),  [180, 200, 210]); // Badekar
-  makeDeco(rx(600), ry(50),  rw(120), rh(70),  [200, 210, 220]); // Vask
-  makeDeco(rx(600), ry(350), rw(80),  rh(100), [220, 220, 230]); // Toalett
-  makeDeco(rx(50),  ry(350), rw(120), rh(80),  [170, 185, 195]); // Vaskemaskin
+  makeSpriteDeco(rx(50),  ry(50),  "bathtub",         1.5); // Badekar — 96×128 → 144×192
+  makeSpriteDeco(rx(595), ry(50),  "sink",            2  ); // Vask — 32×64 → 64×128
+  makeSpriteDeco(rx(590), ry(340), "toilet",          2  ); // Toalett — 32×64 → 64×128
+  makeSpriteDeco(rx(50),  ry(340), "washing_machine", 2  ); // Vaskemaskin — 32×64 → 64×128
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -688,10 +745,10 @@ scene("etasje2_stue", (args) => {
         anchor("center"), color(120, 110, 100), opacity(0.4) ]);
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeDeco(rx(100), ry(476), rw(360), rh(90), [90, 60, 40]);    // Sofa
-  makeDeco(rx(200), ry(340), rw(140), rh(80), [140, 100, 60]);  // Sofabord
-  makeDeco(rx(30),  ry(100), rw(100), rh(180), [80, 80, 200]);  // Bokhylle
-  makeDeco(rx(520), ry(480), rw(180), rh(80), [140, 100, 60]);  // Spisebord
+  makeSpriteDeco(rx(30),  ry(100), "bookshelf_books", 2  ); // Bokhylle — 64×64 → 128×128
+  makeSpriteDeco(rx(80),  ry(450), "sofa",            1.5); // Sofa — 128×64 → 192×96
+  makeSpriteDeco(rx(150), ry(300), "table_sq",        1.5); // Sofabord — 32×64 → 48×96
+  makeSpriteDeco(rx(280), ry(180), "table_sq",        1.5); // Spisebord — 32×64 → 48×96
 
   // ── Rom-etiketter ───────────────────────────────────────────
   add([ text("Stue", { size: 12 }), pos(rx(300), ry(300)), anchor("center"),
@@ -729,10 +786,10 @@ scene("etasje2_mamma", (args) => {
   makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_T, rw(80), WALL_T, "door_etasje2_stue", "Stue ↓");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeDeco(rx(576), ry(50),  rw(200), rh(180), [160, 100, 120]); // Dobbeltseng
-  makeDeco(rx(500), ry(50),  rw(70),  rh(80),  [120, 90,  70]);  // Nattbord
-  makeDeco(rx(50),  ry(50),  rw(140), rh(80),  [120, 100, 80]);  // Kommode
-  makeDeco(rx(50),  ry(350), rw(100), rh(120), [100, 80,  60]);  // Garderobe
+  makeSpriteDeco(rx(490), ry(50),  "bed_double", 1.5); // Dobbeltseng — 96×128 → 144×192
+  makeSpriteDeco(rx(430), ry(60),  "table_sm",   1  ); // Nattbord — 64×64
+  makeSpriteDeco(rx(50),  ry(50),  "dresser",    2  ); // Kommode — 64×32 → 128×64
+  makeSpriteDeco(rx(50),  ry(350), "wardrobe",   2  ); // Garderobe — 64×64 → 128×128
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -763,27 +820,35 @@ scene("etasje2_kjokken", (args) => {
 
   // ── Møbler ──────────────────────────────────────────────────
   makeDeco(rx(736), ry(24),  rw(40),  rh(552), [80, 60, 40]);    // Benk langs høyre vegg
-  makeDeco(rx(50),  ry(80),  rw(160), rh(120), [140, 100, 60]);  // Kjøkkenbord
-  makeDeco(rx(50),  ry(400), rw(100), rh(120), [200, 200, 210]); // Kjøleskap
+  makeSpriteDeco(rx(50),  ry(80),  "table_sm", 2); // Kjøkkenbord — 64×64 → 128×128
+  makeSpriteDeco(rx(50),  ry(400), "fridge",   2); // Kjøleskap — 32×96 → 64×192
   makeDeco(rx(300), ry(30),  rw(160), rh(40),  [80, 60, 40]);    // Benk langs toppvegg
 
   // ── Mat-skål (ved bordet) ───────────────────────────────────
+  // Visuell skål
   add([ circle(14), pos(rx(260), ry(140)), color(50, 100, 220),
-        area({ shape: new Rect(vec2(-14, -14), 28, 28) }),
-        anchor("center"), "bowl" ]);
+        anchor("center") ]);
   add([ text("(matskål)", { size: 12 }), pos(rx(260), ry(162)),
         anchor("center"), color(80, 80, 180), opacity(0.7) ]);
+  // Skålens posisjon for avstandssjekk
+  var bowlPos = vec2(rx(260), ry(140));
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
 
-  // ── Kollisjon ───────────────────────────────────────────────
+  // ── Nærhet til matskålen (avstandsbasert trigger) ──────────
   var bowlMsgShown = false;
-  player.onCollideUpdate("bowl", function() {
-    if (!bowlMsgShown) {
+  var bowlVoicePlayed = false;
+  var BOWL_RANGE = 60;
+  player.onUpdate(function() {
+    if (player.pos.dist(bowlPos) < BOWL_RANGE && !bowlMsgShown) {
       bowlMsgShown = true;
-      showMessage("Matskålen er tom...\nLussi har ikke spist på lenge!", 3);
+      showMessage("Matskålen er full...\nLussi har ikke spist på lenge!", 3);
+      if (!bowlVoicePlayed) {
+        play("lyd_matskaal");
+        bowlVoicePlayed = true;
+      }
       wait(4, function() { bowlMsgShown = false; });
     }
   });
@@ -945,17 +1010,21 @@ scene("gata", (args) => {
     lussiRunning = true;
     lussiEscapes++;
 
-    // Velg en fluktposisjon langt fra både spilleren og Lussi
-    var bestSpot = escapeSpots[0];
-    var bestDist = 0;
+    // Velg en tilfeldig fluktposisjon blant de beste kandidatene
+    var candidates = [];
     for (var i = 0; i < escapeSpots.length; i++) {
       var d = escapeSpots[i].dist(playerPos);
       var fromCurrent = escapeSpots[i].dist(lussi.pos);
-      // Ignorer steder som er for nærme nåværende posisjon
+      // Ignorer steder som er for nærme nåværende posisjon eller spilleren
       if (fromCurrent < 80) continue;
-      var score = d + fromCurrent * 0.5;
-      if (score > bestDist) { bestDist = score; bestSpot = escapeSpots[i]; }
+      if (d < 150) continue;
+      candidates.push({ spot: escapeSpots[i], score: d + fromCurrent * 0.5 });
     }
+    // Sorter etter score og velg tilfeldig blant topp 5
+    candidates.sort(function(a, b) { return b.score - a.score; });
+    var topN = candidates.slice(0, Math.min(5, candidates.length));
+    var pick = topN.length > 0 ? topN[Math.floor(Math.random() * topN.length)] : candidates[0];
+    var bestSpot = pick ? pick.spot : escapeSpots[Math.floor(Math.random() * escapeSpots.length)];
 
     // Fast fluktretning basert på startposisjon
     var fleeFlip = bestSpot.x < lussi.pos.x;
@@ -1338,15 +1407,15 @@ scene("start", () => {
         var ctx = audioCtx;
         if (ctx && ctx.state === "suspended") {
           ctx.resume().then(function() {
-            play("bgmusic", { loop: true, volume: 0.4 });
+            play("bgmusic", { loop: true, volume: 0.1 });
           });
         } else {
-          play("bgmusic", { loop: true, volume: 0.4 });
+          play("bgmusic", { loop: true, volume: 0.1 });
         }
       } catch(e) {
-        play("bgmusic", { loop: true, volume: 0.4 });
+        play("bgmusic", { loop: true, volume: 0.1 });
       }
-      bgMusicPlaying = true;
+      bgMusicPlaying = true;  
     }
     go("etasje2_kjokken");
   }
