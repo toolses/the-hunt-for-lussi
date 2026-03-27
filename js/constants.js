@@ -65,7 +65,7 @@ const SPAWNS = {
   // Gang
   "etasje1_gang_default":             vec2(400, 380),
   "etasje1_gang_fra_gata":            vec2(ROOM_OX+ROOM_W-WALL_V-20, GANG_GATA_DOOR_Y+32),
-  "etasje1_gang_fra_etasje2_stue":    vec2(590, 300),
+  "etasje1_gang_fra_etasje2_stue":    vec2(590, 280),
   "etasje1_gang_fra_etasje1_ylva":    vec2(ROOM_OX+WALL_V+20, GANG_YLVA_DOOR_Y+32),
   "etasje1_gang_fra_etasje1_vetle":   vec2(GANG_VETLE_GAP_X+32, ROOM_OY+TOP_WALL_H+32),
   "etasje1_gang_fra_etasje1_bad":     vec2(ROOM_OX+WALL_V+20, GANG_BAD_DOOR_Y+32),

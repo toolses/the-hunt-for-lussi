@@ -23,7 +23,7 @@ scene("etasje2_stue", function(args) {
   makeDoorway(STUE_MAMMA_GAP_X, ROOM_OY, 64, TOP_WALL_H, "door_etasje2_mamma");
 
   // ── Trapp ned ────────────────────────────────────────────────
-  makeStairs(tileX(12), tileY(5), tileX(19), tileY(8), "up", "stairs_down");
+  makeStairs(tileX(12), tileY(5), tileX(19), tileY(8), "down", "stairs_down");
 
   // ── Furniture ────────────────────────────────────────────────
   makeSpriteDeco(tileX(7), tileY(0),  "fireplace",     1);
