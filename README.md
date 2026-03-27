@@ -1,180 +1,214 @@
 # Jakten på Lussi
 
-A top-down adventure game built with [Kaplay v3](https://kaplayjs.com/) where children explore a two-story house and the street outside to find their missing cat, Lussi.
+A top-down pixel-art adventure game built with [Kaplay v3](https://kaplayjs.com/) where children explore a two-story house and the street outside to find their missing cat, Lussi. All in-game text and voice acting is in Norwegian.
 
 ## The Story
 
-Ylva and Vetle wake up to discover that their cat Lussi hasn't eaten her food. The player picks one of the two children and explores the house — bedrooms, bathroom, kitchen, living room — before heading outside to the street where Lussi is hiding. But Lussi is quick! She escapes 5 times before getting tired enough to be caught.
+Ylva and Vetle wake up to discover that their cat Lussi hasn't eaten her food. The player picks one of the two children and explores the house — bedrooms, bathroom, kitchen, living room — searching every room for the cat. Lussi is spotted hiding in each room and bolts for the door before they can reach her. Once every room has been searched, the front door unlocks and the chase continues outside on the street. But Lussi is fast — she escapes 5 times before getting tired enough to be caught!
 
 ## How to Play
 
 - **Keyboard**: WASD or arrow keys to move
 - **Touch/Mouse**: Tap or click where you want to walk
-- **Doors**: Walk into door openings (marked with a bouncing yellow arrow) to move between rooms
+- **Doors**: Walk through door openings (arched or dark openings) to move between rooms
 - **Stairs**: Walk onto the staircase to move between floors
 
-The game is optimized for **iPad in landscape orientation** but works on any modern browser.
+The game is optimised for **iPad in landscape orientation** but works on any modern browser.
 
 ## Game Flow
 
 ```
 Start Screen (pick Ylva or Vetle)
-  └─→ Kitchen (discover Lussi's untouched food bowl)
-        └─→ Explore 2-floor house (7 rooms + 2 stairwells)
-              └─→ Exit to the street
-                    └─→ Chase Lussi (she escapes 5 times!)
+  └─→ Kitchen (2F — discover Lussi's untouched food bowl)
+        └─→ Explore the house (5 searchable rooms across 2 floors)
+              └─→ All rooms searched → front door unlocks
+                    └─→ Street chase (Lussi escapes 5 times!)
                           └─→ Catch her → Victory!
 ```
 
 ### Scenes
 
-| Scene | Description |
-|-------|-------------|
-| `start` | Character selection (Ylva or Vetle) |
-| `etasje2_kjokken` | Kitchen — starting room, food bowl trigger |
-| `etasje2_stue` | Living room — second floor hub with stairs |
-| `etasje2_mamma` | Mother's bedroom |
-| `etasje1_gang` | Hallway — first floor hub with stairs and exit |
-| `etasje1_ylva` | Ylva's bedroom (hidden "MJAU!" zone) |
-| `etasje1_vetle` | Vetle's bedroom |
-| `etasje1_bad` | Bathroom |
-| `gata` | Street — Lussi chase sequence |
-| `vinn` | Victory screen |
+| Scene | File | Description |
+|-------|------|-------------|
+| `start` | `js/scenes/start.js` | Character selection (Ylva or Vetle) |
+| `etasje2_kjokken` | `js/scenes/kjokken.js` | Kitchen — starting room, food bowl trigger |
+| `etasje2_stue` | `js/scenes/stue.js` | Living room — 2nd floor hub with stairs |
+| `etasje2_mamma` | `js/scenes/mamma.js` | Mother's bedroom |
+| `etasje1_gang` | `js/scenes/gang.js` | Hallway — 1st floor hub with stairs and front door |
+| `etasje1_ylva` | `js/scenes/ylva.js` | Ylva's bedroom |
+| `etasje1_vetle` | `js/scenes/vetle.js` | Vetle's bedroom |
+| `etasje1_bad` | `js/scenes/bad.js` | Bathroom |
+| `gata` | `js/scenes/gata.js` | Street — Lussi chase sequence |
+| `vinn` | `js/scenes/vinn.js` | Victory screen |
+
+### Room Search Progress
+
+Five rooms must be searched before the front door unlocks: living room, mother's bedroom, Ylva's room, Vetle's room, and the bathroom. In each room, Lussi hides behind furniture — when the player gets close, she appears briefly, then bolts for the nearest door.
+
+### Street Chase Mechanic
+
+On the street, Lussi hides behind a bush. When the player approaches:
+1. Lussi picks an escape spot scored by distance-from-player + 0.5 × distance-from-self
+2. She picks randomly from the top 5 candidates and runs at 350 px/sec
+3. After 5 escapes, she's tired — the next approach triggers victory
+4. A heart counter (`♥♥♥♥♥`) tracks remaining escapes
+
+---
 
 ## Technical Overview
 
 ### Engine & Setup
 
 - **Kaplay v3** (v3001.0.19) loaded from CDN
-- **Resolution**: 800x600 (4:3 aspect ratio — matches iPad perfectly)
-- **Rendering**: `crisp: true` for sharp nearest-neighbor pixel art scaling
+- **Resolution**: 800 × 600 (4:3 — matches iPad)
+- **Rendering**: `crisp: true` for sharp nearest-neighbor pixel art scaling, `pixelDensity: 2` for Retina
 - **Physics**: Gravity disabled (top-down perspective)
-- `pixelDensity: 1` to avoid unnecessary retina rendering overhead
+- **No build step** — plain HTML + vanilla JS with `<script>` tags
 
-### Room Scaling System
-
-All house rooms are defined in an original 800x600 coordinate space, then scaled and centered via a set of constants and helper functions:
-
-```js
-const ROOM_S  = 0.765;  // Scale factor
-const ROOM_W  = 612;    // Scaled width
-const ROOM_H  = 459;    // Scaled height
-const ROOM_OX = 94;     // X margin (centering)
-const ROOM_OY = 71;     // Y margin (centering)
-
-function rx(x) { return Math.round(ROOM_OX + x * ROOM_S); }
-function ry(y) { return Math.round(ROOM_OY + y * ROOM_S); }
-function rw(w) { return Math.round(w * ROOM_S); }
-function rh(h) { return Math.round(h * ROOM_S); }
-```
-
-This means every room scene uses original coordinates (e.g., `makeDeco(rx(50), ry(80), rw(160), rh(120), ...)`), and the scaling can be adjusted by changing a single constant. `makeRoomShell(floorType)` generates the standard four walls and tiled floor.
-
-### Character Animation System
-
-Each playable character has three sprite sheets:
-- **Idle** (static, 4 frames — one per direction)
-- **Idle animation** (breathing, 6 frames x 4 directions = 24 frames)
-- **Run animation** (6 frames x 4 directions = 24 frames)
-
-The `setupControls()` function tracks movement state and direction, swapping between `_idle_anim` and `_run` sprites and calling `play("run_down")`, `play("idle_left")`, etc. A `currentAnim` tracker avoids redundant animation restarts.
-
-### Lussi (Cat) Animation
-
-Lussi uses `Cat_Grey.png` from the Cat_85_Animations pack — a 320x2944 sprite sheet with 32x32 frames (10 columns, 92 rows, 483 frames total). Only a subset of animations are used, chosen to avoid blank frames present in some sequences:
-
-| Animation | Frames | Tag | Notes |
-|-----------|--------|-----|-------|
-| `idle` | 0–3 | Idle_1 | Standing, side view |
-| `walk` | 32–39 | W_1 | 8 frames, clear leg movement |
-| `run` | 212–217 | Run_2 | 6 frames, all populated (Run_1 has blank frames) |
-
-### Chase Mechanic
-
-When the player approaches Lussi on the street (within 60px), she flees:
-
-1. Picks the escape spot **farthest from the player** from 15 predefined safe locations (skipping spots within 80px of her current position)
-2. Switches to `run` animation and moves at 350px/sec
-3. `flipX` is set once at flee start (not per-frame) to avoid directional jitter
-4. On arrival, switches to `idle` and starts a **1.5-second cooldown**
-5. After **5 escapes**, Lussi becomes catchable — UI shows "Lussi er sliten! Fang henne!"
-
-### Door System
-
-`makeDoorway(x, y, w, h, tag, label)` creates:
-- A dark opening (near-black, 85% opacity)
-- Light brown trim strips on each side
-- A **bouncing yellow arrow** (▼) above the opening
-- A label with dark pill background for readability
-
-`onDoor()` connects door collisions to scene transitions with a 1-second cooldown to prevent bounce-back when arriving through the same door.
-
-### iOS / iPad Optimizations
-
-**HTML (`index.html`):**
-- `viewport-fit=cover` + `maximum-scale=1.0` — fills screen, prevents pinch zoom
-- `apple-mobile-web-app-capable` — fullscreen when added to home screen
-- `overscroll-behavior: none` + `position: fixed` — prevents Safari bounce
-- `touch-action: none` on canvas — disables double-tap zoom and long-press menu
-- Portrait orientation overlay — shows "Snu iPaden sidelengs" message with animated icon (CSS-only, no JS)
-
-**Audio (`game.js`):**
-- iOS Safari blocks audio until user interaction
-- On character selection tap, Kaplay's own `audioCtx` is checked and resumed if suspended
-- Music starts only after the resume promise resolves
-
-### Audio
-
-| Sound | File | Trigger |
-|-------|------|---------|
-| Background music | `Track 1 (Let's Go).wav` | Character selection (loops) |
-| Bowl voice-over | `lussi-bowl.m4a` | First approach to food bowl |
-
-## Project Structure
+### Project Structure
 
 ```
 the-hunt-for-lussi/
-├── index.html                          # Entry point, CSS, iPad meta tags
-├── game.js                             # All game logic (single file)
+├── index.html                     # Entry point — loads Kaplay + all JS in order
+├── game.js                        # Legacy monolithic PoC (not loaded, kept for reference)
+├── apple-touch-icon.png           # iOS home-screen icon
+├── generate-icon.html             # Utility to generate the app icon
+├── js/
+│   ├── init.js                    # kaplay() config + iOS AudioContext fix
+│   ├── constants.js               # Room geometry, door positions, SPAWNS, room-search tracking
+│   ├── assets.js                  # All loadSprite / loadSpriteAtlas / loadSound calls
+│   ├── helpers.js                 # makeRoomLevel, makeArchDoor, makePlayer, addRoomLussi, etc.
+│   ├── main.js                    # go("start") + Ctrl+Shift+Q dev-tool shortcut
+│   └── scenes/
+│       ├── start.js               # Character selection screen
+│       ├── kjokken.js             # Kitchen (starting room)
+│       ├── stue.js                # 2F living room hub
+│       ├── mamma.js               # Mother's bedroom
+│       ├── gang.js                # 1F hallway hub
+│       ├── ylva.js                # Ylva's bedroom
+│       ├── vetle.js               # Vetle's bedroom
+│       ├── bad.js                 # Bathroom
+│       ├── gata.js                # Street / exterior
+│       ├── vinn.js                # Victory screen
+│       └── dev_tool.js            # Spritesheet coordinate finder (dev only)
 ├── README.md
 └── assets/
-    ├── Cat_85_Animations/              # Lussi cat sprites
-    │   ├── Cat_Grey.png                #   Used in-game (dark cat)
-    │   ├── Cat_Ginger.png              #   Available alternative
-    │   └── Cat_Grey_White.png          #   Available alternative
-    ├── Modern_Interiors_Free_v2.2/     # Tileset pack
-    │   └── Modern tiles_Free/
-    │       ├── Characters_free/        #   Ylva (Amelia) & Vetle (Adam)
-    │       │   ├── *_idle_16x16.png    #     Static directional frames
-    │       │   ├── *_idle_anim_16x16.png #   Breathing animation
-    │       │   └── *_run_16x16.png     #     Run animation
-    │       └── Interiors_free/32x32/
-    │           ├── Room_Builder_free_32x32.png  # Floors & walls
-    │           └── Interiors_free_32x32.png     # Furniture
-    ├── Music/
-    │   └── Track 1 (Let's Go).wav      # Background music
-    └── voice/
-        └── lussi-bowl.m4a              # Kitchen bowl voice-over
+    ├── Room_Builder/              # Tileset sheets (walls, floors, shadows, 3D caps, arches)
+    ├── Cat_85_Animations/         # Lussi (Cat_Grey.png) + unused colour variants
+    ├── Modern_Interiors_Free_v2.2/# LimeZu interior pack (characters + furniture atlas)
+    ├── Modern_Interiors/          # Individual furniture PNGs (bedroom, bathroom, kitchen, living room)
+    ├── Modern_Exteriors/          # Houses, trees, bushes, trampoline
+    ├── Music/                     # "Track 1 (Let's Go).wav" — background loop
+    └── Voice/                     # 5 Norwegian voice clips (.m4a)
 ```
+
+### Room Construction
+
+Rooms are built by `makeRoomLevel()` using a layered Z-index system:
+
+| Z  | Layer       | Contents |
+|----|-------------|----------|
+|  0 | Floor       | Wood/tile sprites tiling the interior area |
+|  1 | Shadows     | Semi-transparent shadow tiles along north + west walls |
+|  5 | Walls       | Top wall (3 rows), side walls, bottom wall |
+|  7 | Player/items| Player character, furniture sprites, room Lussi |
+| 10 | Overhangs   | 3D wall-cap sprites + arch doorway sprites (render in front of player) |
+| 11 | UI          | Lussi `?` indicator |
+
+### Room Geometry
+
+```
+Canvas:  800 × 600
+Room:    608 × 448  (19 × 14 tiles at 32px)
+Offset:  ROOM_OX=96, ROOM_OY=76
+
+Top wall:    96px (3 tiles)     Side walls: 32px (1 tile)
+Bottom wall: 32px (1 tile)      Tile grid:  32 × 32px
+```
+
+Helper functions: `tileX(col)` / `tileY(row)` for tile-aligned coordinates, `rx(x)` / `ry(y)` for legacy scaled placement.
+
+### Door System
+
+Three door types connect rooms:
+
+1. **Top-wall arch** — Gap in the north wall; arch sprites auto-placed by `makeRoomLevel`. Trigger via `makeDoorway()`.
+2. **Bottom-wall arch** — `makeArchDoor()` places 6 arch sprites at z=10; `makeDoorway()` adds the collision trigger.
+3. **Side-wall opening** — `makeSideWallDoor()` creates a dark overlay + collision trigger on left/right walls.
+
+`onDoor()` connects all triggers to scene transitions with a 1-second cooldown to prevent bounce-back.
+
+### Character Animation
+
+Two playable characters (Ylva and Vetle), each with three sprite sheets:
+- **idle** — 4 frames (1 per direction), static pose
+- **idle_anim** — 24 frames (4 directions × 6 frames), breathing animation
+- **run** — 24 frames (4 directions × 6 frames), movement animation
+
+`setupControls()` handles keyboard (WASD / arrows) and touch/mouse input, switching between idle and run sprites based on movement.
+
+### Lussi (Cat) Animation
+
+`Cat_Grey.png` — 320 × 2944, 32 × 32px per frame (10 columns × 92 rows):
+
+| Animation | Frames | Notes |
+|-----------|--------|-------|
+| `idle` | 0–3 | Side view, breathing |
+| `walk` | 32–39 | 8-frame walk cycle |
+| `run` | 212–217 | 6-frame fast run |
+
+### Audio
+
+| Sound | File | Usage |
+|-------|------|-------|
+| `bgmusic` | `Track 1 (Let's Go).wav` | Background music (looped, volume 0.1) |
+| `lyd_matskaal` | `lussi-bowl.m4a` | Kitchen — "Food bowl is full" |
+| `lyd_vetle_rom` | `vetle-rom.m4a` | Vetle's bedroom voice line |
+| `lyd_ylva_rom` | `ylva-rom.m4a` | Ylva's bedroom voice line |
+| `lyd_gaat_ut` | `har-lussi-gaat-ut.m4a` | "Maybe Lussi went outside" |
+| `lyd_lussi_gjemt_inne` | `lussi-gjemt-seg-inne.m4a` | "Lussi might be hiding inside" |
+
+### iOS / iPad Optimisations
+
+- `apple-mobile-web-app-capable` for fullscreen home-screen app mode
+- `viewport-fit=cover` + portrait overlay (CSS rotate prompt)
+- `overscroll-behavior: none` + `position: fixed` prevents Safari bounce
+- `touch-action: none` on canvas blocks double-tap zoom
+- `audioCtx.resume()` called on first interaction and on `visibilitychange` / `focus` / `pageshow` to recover from iOS audio suspension
+
+---
 
 ## Running the Game
 
-Serve the project directory with any static HTTP server:
+Serve from any static HTTP server (`file://` won't load assets):
 
 ```bash
-# Using Node.js
-npx serve .
+# Node.js
+npx http-server . -p 8765
 
-# Using Python
-python3 -m http.server 8000
+# Python
+python3 -m http.server 8765
 ```
 
-Then open `http://localhost:8000` (or `http://localhost:3000` for `serve`) in a browser.
+Then open `http://localhost:8765` in a browser.
 
-> **Note**: Opening `index.html` directly via `file://` will not work due to browser security restrictions on loading assets.
+### Dev Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Shift+Q` | Open spritesheet coordinate finder (dev tool) |
+
+**Quick scene jump** (paste in DevTools console after page load):
+```js
+selectedCharacter = "ylva"; go("etasje1_ylva", { fra: "" });
+```
+
+---
 
 ## Asset Credits
 
 - **Modern Interiors** tileset by [LimeZu](https://limezu.itch.io/) (free version)
+- **Modern Exteriors** tileset by [LimeZu](https://limezu.itch.io/) (free version)
+- **Room Builder** tileset (walls, floors, shadows, arches, 3D caps)
 - **Cat_85_Animations** sprite pack
 - Background music: "Track 1 (Let's Go)"

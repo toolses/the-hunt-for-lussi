@@ -13,8 +13,8 @@ kaplay({
   background: [30, 30, 50],
   gravity: 0,             // Top-down spill — ingen gravitasjon
   debug: false,
-  pixelDensity: 1,        // Ikke bruk devicePixelRatio — sparer GPU på retina-skjermer
-  crisp: true,            // Skarp pikselkunst (nearest-neighbor skalering)
+  pixelDensity: 2,        // Retina/iPad: renderer ved 2× pikseldensitet for skarp visning
+  crisp: true,            // Nearest-neighbor skalering — holder pikselkunst skarp (CSS image-rendering: pixelated)
   touchToMouse: true,     // Mapp touch-events til mus-events automatisk
 });
 
@@ -58,8 +58,7 @@ loadSpriteAtlas(ASSET + "Interiors_free/32x32/Room_Builder_free_32x32.png", {
   "floor_bath":    { x: 288, y: 288, width: 32, height: 32 },
   // ── Grått steingulv ──
   "floor_stone":   { x: 288, y: 352, width: 32, height: 32 },
-  // ── Vegg-ansikt (hvit/krem) ──
-  "wall_face":     { x: 128, y: 352, width: 32, height: 32 },  // Solid vegg-farge
+  // (wall_face fjernet — bruker tiles fra Walls sheet i stedet)
 });
 
 // Resterende atlas-møbler (sprites uten dedikert enkeltfil)
@@ -91,6 +90,81 @@ loadSprite("si_sofa",          MI + "LivingRoom/Living_Room_Singles_35.png");  /
 loadSprite("si_coffee_table",  MI + "LivingRoom/Living_Room_Singles_107.png"); // 32×48
 loadSprite("si_dining_table",  MI + "LivingRoom/Living_Room_Singles_53.png");  // 32×32
 loadSprite("si_kitchen_table", MI + "Kitchen/Kitchen_Singles_165.png");   // 32×48
+
+// ── Room Builder — vegger og gulvskygger ──────────────────────
+const RB = "assets/Room_Builder/";
+
+// Flate grå vegger (fra Walls sheet, stil 3: y=128-191 — nøytral grå)
+// Rad A: mørk kant øverst + hvit trim + grå ansikt
+// Rad B: grå ansikt + fotlist-gradient + mørk kant nederst
+// Ansikt-rad: ren grå utfylling (ekstrahert fra midten av stil-blokken)
+loadSpriteAtlas(RB + "Room_Builder_Walls_32x32.png", {
+  // Rad A — toppvegg (mørk toppkant + hvit trim + grå)
+  "wall_tl": { x: 0,  y: 128, width: 32, height: 32 },  // Toppvegg venstre hjørne
+  "wall_tc": { x: 32, y: 128, width: 32, height: 32 },  // Toppvegg senter (tileable)
+  "wall_tr": { x: 64, y: 128, width: 32, height: 32 },  // Toppvegg høyre hjørne
+  // Ansikt-rad — ren grå (for midtre rad i 3-rads toppvegg)
+  "wall_fl": { x: 0,  y: 144, width: 32, height: 32 },  // Grå ansikt venstre (med mørk kant)
+  "wall_fc": { x: 32, y: 144, width: 32, height: 32 },  // Grå ansikt senter (tileable)
+  "wall_fr": { x: 64, y: 144, width: 32, height: 32 },  // Grå ansikt høyre (med mørk kant)
+  // Rad B — toppvegg bunn (grå + fotlist + mørk bunnkant)
+  "wall_bl": { x: 0,  y: 160, width: 32, height: 32 },  // Bunnrad venstre hjørne
+  "wall_bc": { x: 32, y: 160, width: 32, height: 32 },  // Bunnrad senter (tileable)
+  "wall_br": { x: 64, y: 160, width: 32, height: 32 },  // Bunnrad høyre hjørne
+  // Venstre sidevegg (innvendig ansikt — navy VENSTRE kant, trim+ansikt+fotlist)
+  "wall_slt": { x: 224, y: 128, width: 32, height: 32 }, // Sidevegg V topp (trim)
+  "wall_slf": { x: 224, y: 144, width: 32, height: 32 }, // Sidevegg V ansikt (off-grid)
+  "wall_slb": { x: 224, y: 160, width: 32, height: 32 }, // Sidevegg V bunn (fotlist)
+  // Høyre sidevegg (innvendig ansikt — navy HØYRE kant, trim+ansikt+fotlist)
+  "wall_srt": { x: 288, y: 128, width: 32, height: 32 }, // Sidevegg H topp (trim)
+  "wall_srf": { x: 288, y: 144, width: 32, height: 32 }, // Sidevegg H ansikt (off-grid)
+  "wall_srb": { x: 288, y: 160, width: 32, height: 32 }, // Sidevegg H bunn (fotlist)
+  // Bunnvegg ansikt (innvendig — trim-topp-del, 14px høy = bare "toppen" av veggen)
+  "wall_bwt": { x: 256, y: 128, width: 32, height: 14 }, // Bunnvegg senter (tileable)
+  "wall_bwl": { x: 224, y: 128, width: 32, height: 14 }, // Bunnvegg venstre (navy LEFT)
+  "wall_bwr": { x: 288, y: 128, width: 32, height: 14 }, // Bunnvegg høyre (navy RIGHT)
+});
+
+// Gulvskygger (semi-transparent, svart med lav alpha)
+loadSpriteAtlas(RB + "Room_Builder_Floor_Shadows_32x32.png", {
+  "shadow_tl": { x: 0,   y: 96, width: 32, height: 32 },  // Skygge topp-venstre hjørne
+  "shadow_t":  { x: 192, y: 96, width: 32, height: 32 },  // Skygge topp (tileable)
+  "shadow_tr": { x: 256, y: 96, width: 32, height: 32 },  // Skygge topp-høyre hjørne
+  "shadow_l":  { x: 0,  y: 128, width: 32, height: 32 },  // Skygge venstre (tileable)
+});
+
+// ── Room Builder — 3D forgrunnsvegger (z=3, vises foran spilleren) ──
+// Sheet: 224px wide (7 stiler × 32px). Stil 1 (grå) starter i kolonne 0.
+// Hver stil: venstre hjørne | senter | høyre hjørne (3 cols × 32px).
+loadSpriteAtlas(RB + "Room_Builder_3d_walls_32x32.png", {
+  "wall_3d_tl": { x: 0,   y: 0, width: 32, height: 32 },  // Forgrunn vegg-topp: venstre hjørne
+  "wall_3d_tc": { x: 32,  y: 0, width: 32, height: 32 },  // Forgrunn vegg-topp: senter (tileable)
+  "wall_3d_tr": { x: 64,  y: 0, width: 32, height: 32 },  // Forgrunn vegg-topp: høyre hjørne
+});
+
+// ── Room Builder — utvidede gulvmønstre ──────────────────────
+// Sheet: 3 brede kolonner à ~96px. Kolonne 2 (x≈96) = tregulv.
+// Hvert mønster har 3×3 nine-patch: TL/T/TR + L/C/R + BL/B/BR.
+loadSpriteAtlas(RB + "Room_Builder_Floors_32x32.png", {
+  "floor_rb_wood_tl": { x: 96,  y: 0,   width: 32, height: 32 },
+  "floor_rb_wood_t":  { x: 128, y: 0,   width: 32, height: 32 },
+  "floor_rb_wood_tr": { x: 160, y: 0,   width: 32, height: 32 },
+  "floor_rb_wood_l":  { x: 96,  y: 32,  width: 32, height: 32 },
+  "floor_rb_wood":    { x: 128, y: 32,  width: 32, height: 32 },  // Senter (tileable)
+  "floor_rb_wood_r":  { x: 160, y: 32,  width: 32, height: 32 },
+  "floor_rb_tile":    { x: 0,   y: 32,  width: 32, height: 32 },  // Grå flise-senter
+});
+
+// ── Room Builder — buede dørkarmer (3×3 tiles = 96×96px per stil) ──
+// Stil 1 (lys grå/hvit) starter øverst til venstre.
+loadSpriteAtlas(RB + "Room_Builder_Arched_Entryways_32x32.png", {
+  "arch_tl": { x: 0,   y: 0,  width: 32, height: 32 },  // Dørram topp-venstre
+  "arch_tc": { x: 32,  y: 0,  width: 32, height: 32 },  // Dørram topp-senter (bue-apex)
+  "arch_tr": { x: 64,  y: 0,  width: 32, height: 32 },  // Dørram topp-høyre
+  "arch_ml": { x: 0,   y: 32, width: 32, height: 32 },  // Dørram midtre-venstre
+  "arch_mc": { x: 32,  y: 32, width: 32, height: 32 },  // Dørram midtre-senter (åpning)
+  "arch_mr": { x: 64,  y: 32, width: 32, height: 32 },  // Dørram midtre-høyre
+});
 
 // ── Utendørs — Modern Exteriors (dedikerte spritesheets) ────
 const ME = "assets/Modern_Exteriors/";
@@ -199,13 +273,18 @@ function resetRoomsSearched() {
   for (var k in roomsSearched) roomsSearched[k] = false;
 }
 
-// ── Rom-skalering (90 % av viewport, sentrert) ─────────────
-const ROOM_OX = 94;    // X-offset (margin venstre/høyre)
-const ROOM_OY = 71;    // Y-offset (margin topp/bunn)
-const ROOM_S  = 0.765; // Skaleringsfaktor (0.9 × 0.85)
-const ROOM_W  = 612;   // 800 * 0.765
-const ROOM_H  = 459;   // 600 * 0.765
-const WALL_T  = 18;    // Veggtykkelse (24 * 0.765 ≈ 18)
+// ── Rom-skalering (32px tile-grid, sentrert) ─────────────
+// Rommet er 19 tiles bredt × 14 tiles høyt = 608 × 448 px.
+// (800 − 608) / 2 = 96 px margin horisontalt
+// (600 − 448) / 2 = 76 px margin vertikalt
+const ROOM_OX = 96;    // X-offset (margin venstre/høyre) — var 94
+const ROOM_OY = 76;    // Y-offset (margin topp/bunn) — var 71
+const ROOM_S  = 0.765; // Skaleringsfaktor (beholdes for rx/ry/rw/rh-hjelpere)
+const ROOM_W  = 608;   // 19 tiles × 32px — var 612
+const ROOM_H  = 448;   // 14 tiles × 32px — var 459
+const WALL_V  = 32;    // Visuell veggbredde (1 tile) — sidevegger
+const BOT_WALL_H = 32; // Bunnvegg høyde — 1 full tile (32px) — var 14
+const TOP_WALL_H = 96; // Toppvegg: 3 tile-rader (trim + ansikt + fotlist)
 
 // Hjelpefunksjoner for å konvertere gamle 800×600-koordinater
 function rx(x) { return Math.round(ROOM_OX + x * ROOM_S); }
@@ -213,14 +292,225 @@ function ry(y) { return Math.round(ROOM_OY + y * ROOM_S); }
 function rw(w) { return Math.round(w * ROOM_S); }
 function rh(h) { return Math.round(h * ROOM_S); }
 
-// Standard yttervegger + gulv for et rom
-function makeRoomShell(floorType) {
-  tileFloor(ROOM_OX + WALL_T, ROOM_OY + WALL_T,
-            ROOM_OX + ROOM_W - WALL_T, ROOM_OY + ROOM_H - WALL_T, floorType);
-  makeWall(ROOM_OX, ROOM_OY, ROOM_W, WALL_T);                          // Topp
-  makeWall(ROOM_OX, ROOM_OY + ROOM_H - WALL_T, ROOM_W, WALL_T);       // Bunn
-  makeWall(ROOM_OX, ROOM_OY, WALL_T, ROOM_H);                          // Venstre
-  makeWall(ROOM_OX + ROOM_W - WALL_T, ROOM_OY, WALL_T, ROOM_H);       // Høyre
+/**
+ * Tegner flat krem-vegg langs toppen av rommet (2 tile-rader = 64px).
+ * Rad 1: wall_tl → wall_tc × N → wall_tr (hvit trim + krem ansikt)
+ * Rad 2: wall_bl → wall_bc × N → wall_br (krem ansikt + fotlist)
+ * gaps: array av {x, w} som angir dør-åpninger der tiles hoppes over
+ */
+function tileWallTop(x0, y0, totalW, gaps) {
+  var T = 32;
+  var cols = Math.floor(totalW / T);
+  for (var i = 0; i < cols; i++) {
+    var tx = x0 + i * T;
+
+    // Sjekk om denne tile-kolonnen overlapper med en gap (dør-åpning)
+    var inGap = false;
+    for (var g = 0; g < gaps.length; g++) {
+      if (tx + T > gaps[g].x && tx < gaps[g].x + gaps[g].w) {
+        inGap = true;
+        break;
+      }
+    }
+    if (inGap) continue;
+
+    // Velg tile-variant (venstre hjørne, senter, høyre hjørne)
+    var isL = (i === 0);
+    var isR = (i === cols - 1);
+
+    // Rad 1: trim-rad (dark top + white strip + cream start)
+    var topTile = isL ? "wall_tl" : isR ? "wall_tr" : "wall_tc";
+    add([ sprite(topTile), pos(tx, y0), z(2) ]);
+
+    // Rad 2: ansikt-rad (ren krem utfylling)
+    var faceTile = isL ? "wall_fl" : isR ? "wall_fr" : "wall_fc";
+    add([ sprite(faceTile), pos(tx, y0 + T), z(2) ]);
+
+    // Rad 3: fotlist-rad (cream + baseboard gradient + dark bottom)
+    var botTile = isL ? "wall_bl" : isR ? "wall_br" : "wall_bc";
+    add([ sprite(botTile), pos(tx, y0 + T * 2), z(2) ]);
+  }
+}
+
+/**
+ * Tegner bunnvegg med sprite-tiles fra Walls sheet.
+ * Viser bare toppen av veggen sett ovenfra (14px: hvit cap + trim).
+ * Hjørne-tiles har navy borderkant (matcher sideveggens ytterkant).
+ */
+function tileWallBottom(x0, y0, totalW) {
+  var T = 32;
+  var cols = Math.floor(totalW / T);
+  for (var i = 0; i < cols; i++) {
+    var tx = x0 + i * T;
+    var isL = (i === 0);
+    var isR = (i === cols - 1);
+    var tile = isL ? "wall_bwl" : isR ? "wall_bwr" : "wall_bwt";
+    add([ sprite(tile), pos(tx, y0), z(2) ]);
+  }
+}
+
+/**
+ * Tegner sidevegger med sprite-tiles + 3D topp-cap overlay.
+ * Ansikt-tiles (z=-5) dekker hele bredden, deretter legges en
+ * "vegg-topp sett ovenfra"-stripe (z=-4) over ytterkanten.
+ * Cap-stripen forlenges ned i bunnveggen for hjørne-kobling.
+ */
+function tileWallSide(x0, y0, h, side) {
+  var T = 32;
+  var topTile  = (side === "left") ? "wall_slt" : "wall_srt";
+  var faceTile = (side === "left") ? "wall_slf" : "wall_srf";
+  var botTile  = (side === "left") ? "wall_slb" : "wall_srb";
+  // Ansikt-tiles (hele bredden, z=2)
+  add([ sprite(topTile), pos(x0, y0), z(2) ]);
+  for (var y = y0 + T; y < y0 + h - T; y += T) {
+    add([ sprite(faceTile), pos(x0, y), z(2) ]);
+  }
+  add([ sprite(botTile), pos(x0, y0 + h - T), z(2) ]);
+
+  // 3D topp-cap overlay (z=2) — matcher bunnveggens trim-mønster
+  // Forlenger ned gjennom bunnveggen for sømløs hjørne-kobling
+  var capH = h + BOT_WALL_H;
+  if (side === "left") {
+    // Venstre vegg: cap på VENSTRE ytterkant
+    add([ rect(2, capH), pos(x0 + 2, y0), color(248, 248, 248), z(2) ]);
+    add([ rect(6, capH), pos(x0 + 4, y0), color(253, 253, 253), z(2) ]);
+    add([ rect(2, capH), pos(x0 + 10, y0), color(58, 58, 80), z(2) ]);
+    add([ rect(2, capH), pos(x0 + 12, y0), color(161, 161, 161), z(2) ]);
+  } else {
+    // Høyre vegg: cap på HØYRE ytterkant (speilet)
+    add([ rect(2, capH), pos(x0 + T - 14, y0), color(161, 161, 161), z(2) ]);
+    add([ rect(2, capH), pos(x0 + T - 12, y0), color(58, 58, 80), z(2) ]);
+    add([ rect(6, capH), pos(x0 + T - 10, y0), color(253, 253, 253), z(2) ]);
+    add([ rect(2, capH), pos(x0 + T - 4, y0), color(248, 248, 248), z(2) ]);
+  }
+}
+
+/**
+ * Legger halvtransparente skygge-tiles langs innerkanten av veggene.
+ * x1,y1 = topp-venstre innerkant, x2,y2 = bunn-høyre innerkant.
+ */
+function addFloorShadows(x1, y1, x2, y2) {
+  var T = 32;
+  // Langs topp (under toppveggen)
+  add([ sprite("shadow_tl"), pos(x1, y1), z(1), opacity(0.5) ]);
+  for (var x = x1 + T; x < x2 - T; x += T) {
+    add([ sprite("shadow_t"), pos(x, y1), z(1), opacity(0.5) ]);
+  }
+  add([ sprite("shadow_tr"), pos(x2 - T, y1), z(1), opacity(0.5) ]);
+  // Langs venstre side
+  for (var y = y1 + T; y < y2; y += T) {
+    add([ sprite("shadow_l"), pos(x1, y), z(1), opacity(0.5) ]);
+  }
+}
+
+/**
+ * Bygger romskallet via Kaplay addLevel() med 32×32 tile-grid.
+ *
+ * Z-lag:
+ *   z(0) — gulvfliser
+ *   z(1) — gulvskygger
+ *   z(2) — veggflater + sidevegger + bunnvegg (kollisjon)
+ *   z(3) — 3D vegg-topp-caps (forgrunn — vises foran spilleren)
+ *
+ * Dybde-triks: spilleren er z(2), forgrunn-caps er z(3) →
+ * spilleren ser ut til å gå bak veggens øvre kant.
+ *
+ * topGaps: array av { x, w } (piksel-koordinater) — dør-åpninger
+ * i toppveggen der tiles hoppes over og bue-sprites settes inn.
+ */
+function makeRoomLevel(floorType, topGaps) {
+  topGaps = topGaps || [];
+  var T = 32;
+  var cols = ROOM_W / T;   // 19
+  var rows = ROOM_H / T;   // 14
+
+  // Konverter topGaps fra piksel til tile-indeks
+  var gapCols = [];  // array av sets med kolonne-indekser som er gap
+  for (var g = 0; g < topGaps.length; g++) {
+    var gapStart = Math.floor((topGaps[g].x - ROOM_OX) / T);
+    var gapEnd   = Math.ceil( (topGaps[g].x + topGaps[g].w - ROOM_OX) / T);
+    for (var ci = gapStart; ci < gapEnd; ci++) {
+      gapCols.push(ci);
+    }
+  }
+
+  // Bygg tile-streng-matrisen (rows + 1 ekstra rad over for 3D caps)
+  var map = [];
+
+  // Rad 0 (y = ROOM_OY - T): 3D forgrunn vegg-topp-caps (z=3)
+  var row0 = "";
+  for (var c = 0; c < cols; c++) {
+    if (gapCols.indexOf(c) >= 0) {
+      row0 += "D";  // bue-sprite over dør-åpning
+    } else {
+      row0 += (c === 0) ? "[" : (c === cols - 1) ? "]" : "T";
+    }
+  }
+  map.push(row0);
+
+  // Radene 1–3 (y = ROOM_OY til +64): toppvegg-ansikt (z=2, kollisjon)
+  for (var row = 1; row <= 3; row++) {
+    var rowStr = "";
+    for (var c = 0; c < cols; c++) {
+      rowStr += (gapCols.indexOf(c) >= 0) ? " " : "W";
+    }
+    map.push(rowStr);
+  }
+
+  // Radene 4–(rows-2): interiør — sidevegg på col 0 og cols-1, gulv imellom
+  for (var row = 4; row < rows - 1; row++) {
+    var rowStr = "";
+    for (var c = 0; c < cols; c++) {
+      if (c === 0)         rowStr += "L";
+      else if (c === cols - 1) rowStr += "R";
+      else if (c === 1 || c === cols - 2) rowStr += "S";  // skygge-kolonne
+      else                 rowStr += ".";
+    }
+    map.push(rowStr);
+  }
+
+  // Rad rows-1 (y = ROOM_OY + ROOM_H - T): bunnvegg (z=2, kollisjon)
+  var botRow = "";
+  for (var c = 0; c < cols; c++) {
+    botRow += (c === 0 || c === cols - 1) ? "B" : "B";
+  }
+  map.push(botRow);
+
+  // addLevel — plassert T over ROOM_OY slik at forgrunn-raden sitter rett over veggen
+  addLevel(map, {
+    tileWidth:  T,
+    tileHeight: T,
+    pos: vec2(ROOM_OX, ROOM_OY - T),
+    tiles: {
+      // z(3) — 3D vegg-topp-caps (forgrunn, ingen kollisjon)
+      "[": () => [ sprite("wall_3d_tl"), z(3), anchor("topleft") ],
+      "T": () => [ sprite("wall_3d_tc"), z(3), anchor("topleft") ],
+      "]": () => [ sprite("wall_3d_tr"), z(3), anchor("topleft") ],
+      "D": () => [ sprite("arch_tc"),    z(3), anchor("topleft") ],
+      // z(2) — veggflater med kollisjon
+      "W": () => [ sprite("wall_fc"),  z(2), anchor("topleft"), area(), body({ isStatic: true, gravityScale: 0 }) ],
+      "L": () => [ sprite("wall_slf"), z(2), anchor("topleft"), area(), body({ isStatic: true, gravityScale: 0 }) ],
+      "R": () => [ sprite("wall_srf"), z(2), anchor("topleft"), area(), body({ isStatic: true, gravityScale: 0 }) ],
+      "B": () => [ sprite("wall_bwt"), z(2), anchor("topleft"), area(), body({ isStatic: true, gravityScale: 0 }) ],
+      // z(0) — gulvfliser (ingen kollisjon)
+      ".": () => [ sprite(floorType || "floor_wood"), z(0), anchor("topleft") ],
+      // z(1) — gulv med skygge-overlay langs sidevegger
+      "S": () => [ sprite(floorType || "floor_wood"), z(0), anchor("topleft") ],
+      " ": null,
+    },
+  });
+
+  // Skygge-overlay langs toppvegg og sidevegger (addLevel støtter ikke multi-objekt per tile)
+  var ix1 = ROOM_OX + WALL_V;
+  var iy1 = ROOM_OY + TOP_WALL_H;
+  var ix2 = ROOM_OX + ROOM_W - WALL_V;
+  var iy2 = ROOM_OY + ROOM_H - BOT_WALL_H;
+  addFloorShadows(ix1, iy1, ix2, iy2);
+}
+
+// Bakoverkompatibelt alias — eksisterende scener kan kalle makeRoomShell inntil de er oppdatert
+function makeRoomShell(floorType, topGaps) {
+  makeRoomLevel(floorType, topGaps);
 }
 
 // Valgt karakter — settes på startskjermen
@@ -234,8 +524,8 @@ const SPAWNS = {
   "etasje1_gang_fra_gata":           vec2(rx(700), ry(480)),
   "etasje1_gang_fra_etasje2_stue":   vec2(rx(550), ry(160)),
   "etasje1_gang_fra_etasje1_ylva":   vec2(rx(100), ry(340)),
-  "etasje1_gang_fra_etasje1_vetle":  vec2(rx(300), ry(100)),
-  "etasje1_gang_fra_etasje1_bad":    vec2(rx(100), ry(100)),
+  "etasje1_gang_fra_etasje1_vetle":  vec2(rx(300), ry(170)),
+  "etasje1_gang_fra_etasje1_bad":    vec2(rx(100), ry(170)),
 
   // Ylva soverom
   "etasje1_ylva_default":            vec2(rx(400), ry(300)),
@@ -252,8 +542,8 @@ const SPAWNS = {
   // Hub 2: Stue + korridor + trappehus (2. etasje)
   "etasje2_stue_default":            vec2(rx(350), ry(350)),
   "etasje2_stue_fra_etasje1_gang":   vec2(rx(550), ry(380)),
-  "etasje2_stue_fra_etasje2_mamma":  vec2(rx(500), ry(100)),
-  "etasje2_stue_fra_etasje2_kjokken": vec2(rx(150), ry(100)),
+  "etasje2_stue_fra_etasje2_mamma":  vec2(rx(500), ry(170)),
+  "etasje2_stue_fra_etasje2_kjokken": vec2(rx(150), ry(170)),
 
   // Mamma soverom
   "etasje2_mamma_default":           vec2(rx(400), ry(300)),
@@ -275,12 +565,11 @@ const SPAWNS = {
  * Lager en grå vegg med kollisjon.
  * TODO: replace with sprite("wall") / sprite("floor") when pixel art is ready
  */
-function makeWall(x, y, w, h, col) {
-  col = col || [240, 235, 225];  // Krem — ligner vegg-ansikt fra tileset
+function makeWall(x, y, w, h) {
   return add([
     rect(w, h),
     pos(x, y),
-    color(...col),
+    opacity(0),
     area(),
     body({ isStatic: true, gravityScale: 0 }),
     "wall",
@@ -319,12 +608,12 @@ function makeSpriteDeco(x, y, spriteName, sc) {
  */
 function makeDoorway(x, y, w, h, tag, label) {
   // Mørk åpning — tydelig «hull i veggen»
-  add([ rect(w, h), pos(x, y), color(30, 20, 10), opacity(0.85), z(-1) ]);
+  add([ rect(w, h), pos(x, y), color(30, 20, 10), opacity(0.85), z(1) ]);
 
   // Lyse karmstriper langs sidene for dybde-effekt
   var trim = 3;
-  add([ rect(trim, h), pos(x, y), color(160, 120, 70), z(0) ]);                // Venstre karm
-  add([ rect(trim, h), pos(x + w - trim, y), color(160, 120, 70), z(0) ]);      // Høyre karm
+  add([ rect(trim, h), pos(x, y), color(160, 120, 70), z(2) ]);                // Venstre karm
+  add([ rect(trim, h), pos(x + w - trim, y), color(160, 120, 70), z(2) ]);      // Høyre karm
 
   // Pulserende pil-indikator over døråpningen
   var arrow = add([
@@ -421,7 +710,7 @@ function tileFloor(x1, y1, x2, y2, spriteName, useBorders) {
         else if (isLeft)           tile = spriteName + "_l";
         else if (isRight)          tile = spriteName + "_r";
       }
-      add([sprite(tile), pos(x, y), z(-10)]);
+      add([sprite(tile), pos(x, y), z(0)]);
     }
   }
 }
@@ -510,7 +799,6 @@ function addRoomLussi(roomKey, hidePos, indicatorPos, doorTarget, player, trigge
       wait(0.3, function() {
         lussi.play("run");
         lussi.flipX = (doorTarget.x < lussi.pos.x);
-        showMessage("Mjau! Lussi stakk av!", 1.5);
 
         var speed = 280;
         var moveHandler = lussi.onUpdate(function() {
@@ -538,10 +826,10 @@ function makePlayer(spawnPos) {
     sprite(selectedCharacter + "_idle_anim"),
     pos(spawnPos),
     scale(2),              // 16x32 → 32x64
-    area({ shape: new Rect(vec2(0, 11), 10, 10) }), // Hitbox ved føttene (bunn flukter med visuell bunn)
+    area({ shape: new Rect(vec2(2, 13), 8, 8) }),   // Hitbox litt smalere — jevnere passasje gjennom dørkarmer
     body({ gravityScale: 0 }),
     anchor("center"),
-    z(10),
+    z(2),                  // Same lag som vegger; 3D-caps (z=3) vises foran spilleren
     "player",
   ]);
   // Intern state for animasjonsbytte
@@ -644,23 +932,23 @@ scene("etasje1_gang", (args) => {
   var spawnPos = SPAWNS["etasje1_gang_fra_" + fra] || SPAWNS.etasje1_gang_default;
 
   // ── Gulv + yttervegger ──────────────────────────────────────
-  makeRoomShell("floor_wood_dark");
+  makeRoomShell("floor_wood_dark", [{ x: rx(250), w: rw(80) }]);
   // Trappehus (høyre side, litt mørkere)
-  tileFloor(rx(520), ry(80), rx(776), ry(360), "floor_wood_dark");
+  tileFloor(rx(520), ry(130), rx(776), ry(360), "floor_wood_dark");
 
   // ── Trappehus-vegger ────────────────────────────────────────
-  makeWall(rx(520), ry(72),  rw(256), rh(16));   // Topp-vegg
+  makeWall(rx(520), ry(122), rw(256), rh(16));   // Topp-vegg
   makeWall(rx(520), ry(352), rw(256), rh(16));   // Bunn-vegg
 
   // ── Dører ───────────────────────────────────────────────────
-  makeDoorway(ROOM_OX, ry(60), WALL_T, rh(80), "door_etasje1_bad", "Bad");
-  makeDoorway(ROOM_OX, ry(280), WALL_T, rh(80), "door_etasje1_ylva", "Ylva");
-  makeDoorway(rx(250), ROOM_OY, rw(80), WALL_T, "door_etasje1_vetle", "Vetle");
-  makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(440), WALL_T, rh(80), "door_gata", "Ut →");
+  makeDoorway(ROOM_OX, ry(60), WALL_V, rh(80), "door_etasje1_bad", "Bad");
+  makeDoorway(ROOM_OX, ry(280), WALL_V, rh(80), "door_etasje1_ylva", "Ylva");
+  makeDoorway(rx(250), ROOM_OY, rw(80), TOP_WALL_H, "door_etasje1_vetle", "Vetle");
+  makeDoorway(ROOM_OX + ROOM_W - WALL_V, ry(440), WALL_V, rh(80), "door_gata", "Ut →");
 
   // ── Trapp opp (øvre halvdel av trappehus) ───────────────────
-  makeStairs(rx(520), ry(88), rx(776), ry(216), "up", "stairs_up");
-  add([ text("Opp ▲", { size: 14 }), pos(rx(648), ry(152)),
+  makeStairs(rx(520), ry(138), rx(776), ry(216), "up", "stairs_up");
+  add([ text("Opp ▲", { size: 14 }), pos(rx(648), ry(177)),
         anchor("center"), color(200, 230, 255), z(1) ]);
   add([ text("Repos", { size: 10 }), pos(rx(648), ry(290)),
         anchor("center"), color(120, 110, 100), opacity(0.4) ]);
@@ -723,13 +1011,13 @@ scene("etasje1_ylva", (args) => {
   makeRoomShell("floor_wood");
 
   // ── Dør til gang (høyre vegg) ───────────────────────────────
-  makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(260), WALL_T, rh(80), "door_etasje1_gang", "Gang →");
+  makeDoorway(ROOM_OX + ROOM_W - WALL_V, ry(260), WALL_V, rh(80), "door_etasje1_gang", "Gang →");
 
   // ── Møbler ──────────────────────────────────────────────────
   makeSpriteDeco(rx(550), ry(220), "si_bed_single", 3); // Seng (16×48 → 48×144)
   makeSpriteDeco(rx(30),  ry(380), "si_wardrobe",   3); // Garderobe (16×48 → 48×144)
-  makeSpriteDeco(rx(30),  ry(20),  "computer_desk", 2); // PC-pult — atlas
-  makeSpriteDeco(rx(350), ry(25),  "bookshelf_books",2); // Bokhylle — atlas (64×64 → 128×128)
+  makeSpriteDeco(rx(30),  ry(125), "computer_desk", 2); // PC-pult — atlas
+  makeSpriteDeco(rx(350), ry(125), "bookshelf_books",2); // Bokhylle — atlas (64×64 → 128×128)
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -737,10 +1025,15 @@ scene("etasje1_ylva", (args) => {
 
   // ── Lussi gjemmer seg bak bokhyllen ────────────────────────
   addRoomLussi("etasje1_ylva",
-    { x: rx(390), y: ry(80) },   // Bak bokhyllen
-    { x: rx(420), y: ry(20) },   // "?" over bokhyllen
+    { x: rx(390), y: ry(175) },  // Bak bokhyllen
+    { x: rx(420), y: ry(120) },  // "?" over bokhyllen
     { x: ROOM_OX + ROOM_W, y: ry(300) },  // Løper til døren (høyre vegg)
     player);
+
+  // ── Stemme + tekst ────────────────────────────────────────
+  wait(2, function() {
+    play("lyd_ylva_rom");
+  });
 
   // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_ylva", fra);
@@ -763,13 +1056,13 @@ scene("etasje1_vetle", (args) => {
   makeRoomShell("floor_wood");
 
   // ── Dør til gang (bunn vegg) ────────────────────────────────
-  makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_T, rw(80), WALL_T, "door_etasje1_gang", "Gang ↓");
+  makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_V, rw(80), WALL_V, "door_etasje1_gang", "Gang ↓");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(575), ry(50),  "si_bed_single",  3); // Seng (16×48 → 48×144)
-  makeSpriteDeco(rx(50),  ry(50),  "computer_desk",  2); // Skrivebord — atlas
+  makeSpriteDeco(rx(575), ry(125), "si_bed_single",  3); // Seng (16×48 → 48×144)
+  makeSpriteDeco(rx(50),  ry(125), "computer_desk",  2); // Skrivebord — atlas
   makeSpriteDeco(rx(50),  ry(380), "bookshelf_books",2); // Bokhylle — atlas (64×64 → 128×128)
-  makeSpriteDeco(rx(350), ry(50),  "si_wardrobe",    3); // Garderobe (16×48 → 48×144)
+  makeSpriteDeco(rx(350), ry(125), "si_wardrobe",    3); // Garderobe (16×48 → 48×144)
 
   // ── Spillerfigur ────────────────────────────────────────────
   var player = makePlayer(spawnPos);
@@ -777,10 +1070,15 @@ scene("etasje1_vetle", (args) => {
 
   // ── Lussi gjemmer seg bak garderoben ───────────────────────
   addRoomLussi("etasje1_vetle",
-    { x: rx(370), y: ry(100) },  // Bak garderoben
-    { x: rx(400), y: ry(45) },   // "?" over garderoben
+    { x: rx(370), y: ry(175) },  // Bak garderoben
+    { x: rx(400), y: ry(120) },  // "?" over garderoben
     { x: rx(400), y: ROOM_OY + ROOM_H + 10 },  // Løper til døren (bunn vegg)
     player);
+
+  // ── Stemme + tekst ────────────────────────────────────────
+  wait(2, function() {
+    play("lyd_vetle_rom");
+  });
 
   // ── Kollisjon ───────────────────────────────────────────────
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_vetle", fra);
@@ -803,11 +1101,11 @@ scene("etasje1_bad", (args) => {
   makeRoomShell("floor_bath");
 
   // ── Dør til gang (høyre vegg) ───────────────────────────────
-  makeDoorway(ROOM_OX + ROOM_W - WALL_T, ry(300), WALL_T, rh(80), "door_etasje1_gang", "Gang →");
+  makeDoorway(ROOM_OX + ROOM_W - WALL_V, ry(300), WALL_V, rh(80), "door_etasje1_gang", "Gang →");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(50),  ry(50),  "si_bathtub", 4).play("splash"); // Badekar — animert
-  makeSpriteDeco(rx(595), ry(50),  "si_sink",    2); // Vask (32×48 → 64×96)
+  makeSpriteDeco(rx(50),  ry(125), "si_bathtub", 4).play("splash"); // Badekar — animert
+  makeSpriteDeco(rx(595), ry(125), "si_sink",    2); // Vask (32×48 → 64×96)
   makeSpriteDeco(rx(590), ry(340), "si_toilet",  3); // Toalett (16×48 → 48×144)
   makeSpriteDeco(rx(50),  ry(340), "si_washer",  2); // Vaskemaskin (32×48 → 64×96)
 
@@ -817,8 +1115,8 @@ scene("etasje1_bad", (args) => {
 
   // ── Lussi gjemmer seg bak badekaret ────────────────────────
   addRoomLussi("etasje1_bad",
-    { x: rx(80), y: ry(100) },   // Bak badekaret
-    { x: rx(110), y: ry(45) },   // "?" over badekaret
+    { x: rx(80), y: ry(175) },   // Bak badekaret
+    { x: rx(110), y: ry(120) },  // "?" over badekaret
     { x: ROOM_OX + ROOM_W, y: ry(340) },  // Løper til døren (høyre vegg)
     player);
 
@@ -845,7 +1143,7 @@ scene("etasje2_stue", (args) => {
   var spawnPos = SPAWNS["etasje2_stue_fra_" + fra] || SPAWNS.etasje2_stue_default;
 
   // ── Gulv + yttervegger ──────────────────────────────────────
-  makeRoomShell("floor_wood");
+  makeRoomShell("floor_wood", [{ x: rx(100), w: rw(80) }, { x: rx(400), w: rw(80) }]);
   // Trappehus (høyre side)
   tileFloor(rx(520), ry(200), rx(776), ry(440), "floor_wood_dark");
 
@@ -854,8 +1152,8 @@ scene("etasje2_stue", (args) => {
   makeWall(rx(520), ry(432), rw(256), rh(16));   // Bunn-vegg
 
   // ── Dører ───────────────────────────────────────────────────
-  makeDoorway(rx(100), ROOM_OY, rw(80), WALL_T, "door_etasje2_kjokken", "Kjøkken");
-  makeDoorway(rx(400), ROOM_OY, rw(80), WALL_T, "door_etasje2_mamma", "Mamma");
+  makeDoorway(rx(100), ROOM_OY, rw(80), TOP_WALL_H, "door_etasje2_kjokken", "Kjøkken");
+  makeDoorway(rx(400), ROOM_OY, rw(80), TOP_WALL_H, "door_etasje2_mamma", "Mamma");
 
   // ── Trapp ned (nedre halvdel av trappehus) ──────────────────
   makeStairs(rx(520), ry(316), rx(776), ry(432), "down", "stairs_down");
@@ -865,10 +1163,10 @@ scene("etasje2_stue", (args) => {
         anchor("center"), color(120, 110, 100), opacity(0.4) ]);
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(30),  ry(100), "bookshelf_books",  2  ); // Bokhylle — atlas (64×64 → 128×128)
+  makeSpriteDeco(rx(30),  ry(170), "bookshelf_books",  2  ); // Bokhylle — atlas (64×64 → 128×128)
   makeSpriteDeco(rx(80),  ry(450), "si_sofa",        3  ); // Sofa (32×32 → 96×96)
   makeSpriteDeco(rx(150), ry(300), "si_coffee_table",2  ); // Sofabord (32×48 → 64×96)
-  makeSpriteDeco(rx(280), ry(180), "si_dining_table",3  ); // Spisebord (32×32 → 96×96)
+  makeSpriteDeco(rx(280), ry(230), "si_dining_table",3  ); // Spisebord (32×32 → 96×96)
 
   // ── Rom-etiketter ───────────────────────────────────────────
   add([ text("Stue", { size: 12 }), pos(rx(300), ry(300)), anchor("center"),
@@ -909,11 +1207,11 @@ scene("etasje2_mamma", (args) => {
   makeRoomShell("floor_wood");
 
   // ── Dør til stue (bunn vegg) ────────────────────────────────
-  makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_T, rw(80), WALL_T, "door_etasje2_stue", "Stue ↓");
+  makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_V, rw(80), WALL_V, "door_etasje2_stue", "Stue ↓");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeSpriteDeco(rx(490), ry(50),  "si_bed",      3); // Seng (32×48 → 96×144)
-  makeSpriteDeco(rx(50),  ry(50),  "si_dresser",  3); // Kommode (32×32 → 96×96)
+  makeSpriteDeco(rx(490), ry(125), "si_bed",      3); // Seng (32×48 → 96×144)
+  makeSpriteDeco(rx(50),  ry(125), "si_dresser",  3); // Kommode (32×32 → 96×96)
   makeSpriteDeco(rx(50),  ry(350), "si_wardrobe", 3); // Garderobe (16×48 → 48×144)
 
   // ── Spillerfigur ────────────────────────────────────────────
@@ -922,8 +1220,8 @@ scene("etasje2_mamma", (args) => {
 
   // ── Lussi gjemmer seg under sengen ─────────────────────────
   addRoomLussi("etasje2_mamma",
-    { x: rx(520), y: ry(120) },  // Under sengen
-    { x: rx(550), y: ry(45) },   // "?" over sengen
+    { x: rx(520), y: ry(190) },  // Under sengen
+    { x: rx(550), y: ry(120) },  // "?" over sengen
     { x: rx(400), y: ROOM_OY + ROOM_H + 10 },  // Løper til døren (bunn vegg)
     player);
 
@@ -948,20 +1246,18 @@ scene("etasje2_kjokken", (args) => {
   makeRoomShell("floor_wood");
 
   // ── Dør til stue (bunn vegg) ────────────────────────────────
-  makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_T, rw(80), WALL_T, "door_etasje2_stue", "Stue ↓");
+  makeDoorway(rx(360), ROOM_OY + ROOM_H - WALL_V, rw(80), WALL_V, "door_etasje2_stue", "Stue ↓");
 
   // ── Møbler ──────────────────────────────────────────────────
-  makeDeco(rx(736), ry(24),  rw(40),  rh(552), [80, 60, 40]);    // Benk langs høyre vegg
-  makeSpriteDeco(rx(50),  ry(80),  "si_kitchen_table", 2); // Kjøkkenbord (32×48 → 64×96)
+  makeDeco(rx(736), ry(140), rw(40),  rh(490), [80, 60, 40]);    // Benk langs høyre vegg
+  makeSpriteDeco(rx(50),  ry(155), "si_kitchen_table", 2); // Kjøkkenbord (32×48 → 64×96)
   makeSpriteDeco(rx(50),  ry(400), "fridge",            2); // Kjøleskap — atlas
-  makeDeco(rx(300), ry(30),  rw(160), rh(40),  [80, 60, 40]);    // Benk langs toppvegg
+  makeDeco(rx(300), ry(125), rw(160), rh(40),  [80, 60, 40]);    // Benk langs toppvegg
 
   // ── Mat-skål (ved bordet) ───────────────────────────────────
-  // Visuell skål
-  add([ circle(14), pos(rx(260), ry(140)), color(50, 100, 220),
-        anchor("center") ]);
-  add([ text("(matskål)", { size: 12 }), pos(rx(260), ry(162)),
-        anchor("center"), color(80, 80, 180), opacity(0.7) ]);
+  // Visuell skål — 32px diameter, z(1) slik den ligger på gulvet
+  add([ circle(16), pos(rx(260), ry(140)), color(50, 100, 220),
+        anchor("center"), z(1) ]);
   // Skålens posisjon for avstandssjekk
   var bowlPos = vec2(rx(260), ry(140));
 
