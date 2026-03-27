@@ -21,6 +21,12 @@ scene("etasje1_ylva", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
+  setupHUD();
+
+  // ── Godbiter (treats) ────────────────────────────────────────
+  addTreat(5,  9,  "ylva");
+  addTreat(15, 8,  "ylva");
+  addTreat(11, 6,  "ylva");
 
   // ── Lussi hides behind the bookshelf ────────────────────────
   addRoomLussi("etasje1_ylva",

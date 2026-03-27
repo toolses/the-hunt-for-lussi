@@ -187,6 +187,9 @@ loadSprite("raw_baseboards", RB + "Room_Builder_baseboards_32x32.png");
 loadSprite("raw_arches",     RB + "Room_Builder_Arched_Entryways_32x32.png");
 
 // ── Audio ──────────────────────────────────────────────────────
+// Treat pickup sound — add the file to enable (e.g. assets/Sound/pling.wav):
+// loadSound("lyd_pling", "assets/Sound/pling.wav");
+
 loadSound("bgmusic",            "assets/Music/Track 1 (Let's Go).wav");
 loadSound("lyd_matskaal",       "assets/voice/lussi-bowl.m4a");
 loadSound("lyd_vetle_rom",      "assets/Voice/vetle-rom.m4a");

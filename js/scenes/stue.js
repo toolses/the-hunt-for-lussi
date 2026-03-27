@@ -34,6 +34,12 @@ scene("etasje2_stue", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
+  setupHUD();
+
+  // ── Godbiter (treats) ────────────────────────────────────────
+  addTreat(4,  5,  "stue");  // upper half, left area
+  addTreat(4,  10, "stue");  // lower half, away from coffee table
+  addTreat(9,  11, "stue");  // lower center
 
   // ── Lussi hides under the dining table ──────────────────────
   addRoomLussi("etasje2_stue",

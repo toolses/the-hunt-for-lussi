@@ -20,6 +20,11 @@ scene("etasje2_mamma", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
+  setupHUD();
+
+  // ── Godbiter (treats) ────────────────────────────────────────
+  addTreat(6,  7,  "mamma");  // center of room
+  addTreat(15, 9,  "mamma");  // lower right
 
   // ── Lussi hides under the bed ────────────────────────────────
   addRoomLussi("etasje2_mamma",

@@ -176,6 +176,7 @@ scene("gata", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, true);
+  setupHUD();
 
   // Kameragrenser
   player.onUpdate(function() {

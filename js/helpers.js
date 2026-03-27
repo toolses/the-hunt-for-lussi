@@ -353,6 +353,36 @@ function makeSpriteDeco(x, y, spriteName, sc) {
   ]);
 }
 
+/**
+ * Places a collectable treat (godbiter) at tile (col, row).
+ * sceneKey: short scene identifier (e.g. "ylva") used to persist
+ * collection state — treats stay gone when the player re-enters the room.
+ * Renders as a golden circle with a gentle bob animation.
+ * Tag: "treat" — player collision is wired in setupControls.
+ */
+function addTreat(col, row, sceneKey) {
+  var key = (sceneKey || "?") + "_" + col + "_" + row;
+  if (collectedTreats[key]) return;   // already picked up this run
+
+  var baseX = tileX(col) + 16;
+  var baseY = tileY(row) + 16;
+  var bobPhase = Math.random() * Math.PI * 2;
+  var t = add([
+    text("🐟", { size: 22 }),
+    pos(baseX, baseY),
+    anchor("center"),
+    area(),
+    z(7),
+    "treat",
+    { _baseY: baseY, _phase: bobPhase, _key: key },
+  ]);
+  t.onUpdate(function() {
+    t._phase += dt() * 2.5;
+    t.pos.y = t._baseY + Math.sin(t._phase) * 3;
+  });
+  return t;
+}
+
 // ────────────────────────────────────────────────────────────
 // MESSAGES
 // ────────────────────────────────────────────────────────────
@@ -540,5 +570,51 @@ function setupControls(player, followCamera) {
 
     if (followCamera) camPos(player.pos);
     else              camPos(vec2(400, 300));
+  });
+
+  // Treat pickup
+  player.onCollide("treat", function(t) {
+    collectedTreats[t._key] = true;
+    destroy(t);
+    treatsCount++;
+    try { play("lyd_pling"); } catch(e) {}
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// HUD — treats collected + rooms searched
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a fixed HUD overlay showing:
+ *   - Treats collected  (top-right)
+ *   - Rooms searched    (below that, light blue)
+ * Call once per game scene (not on start/vinn screens).
+ */
+function setupHUD() {
+  var roomsTotal = Object.keys(roomsSearched).length;
+
+  var treatLabel = add([
+    text("🐟 x 0", { size: 20 }),
+    pos(790, 10),
+    anchor("topright"),
+    fixed(),
+    z(100),
+  ]);
+  treatLabel.onUpdate(function() {
+    treatLabel.text = "🐟 x " + treatsCount;
+  });
+
+  var roomLabel = add([
+    text("0 / 5 rom", { size: 16 }),
+    pos(790, 36),
+    anchor("topright"),
+    fixed(),
+    color(190, 225, 255),
+    z(100),
+  ]);
+  roomLabel.onUpdate(function() {
+    var n = Object.values(roomsSearched).filter(function(v) { return v; }).length;
+    roomLabel.text = n + " / " + roomsTotal + " rom";
   });
 }

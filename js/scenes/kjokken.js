@@ -27,6 +27,7 @@ scene("etasje2_kjokken", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
+  setupHUD();
 
   // ── Proximity trigger: food bowl ─────────────────────────────
   var bowlMsgShown  = false;

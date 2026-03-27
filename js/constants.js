@@ -17,6 +17,14 @@ function resetRoomsSearched() {
   for (var k in roomsSearched) roomsSearched[k] = false;
 }
 
+// ── Treat (godbiter) counter & persistence ────────────────────
+let treatsCount = 0;
+let collectedTreats = {};          // keys: "sceneKey_col_row"
+function resetTreats() {
+  treatsCount = 0;
+  collectedTreats = {};
+}
+
 // ── Room geometry (19×14 tile grid at 32px/tile) ─────────────
 // Canvas: 800×600. Room: 608×448. Margins: 96px left/right, 76px top/bottom.
 const ROOM_OX    = 96;   // left margin

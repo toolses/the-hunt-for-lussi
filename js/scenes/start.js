@@ -57,6 +57,7 @@ scene("start", function() {
   function startGame(character) {
     selectedCharacter = character;
     resetRoomsSearched();
+    resetTreats();
     if (!bgMusicPlaying) {
       try {
         var ctx = audioCtx;

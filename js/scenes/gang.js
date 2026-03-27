@@ -36,6 +36,7 @@ scene("etasje1_gang", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
+  setupHUD();
 
   // ── Door transitions ─────────────────────────────────────────
   onDoor(player, "door_etasje1_bad",   "etasje1_bad",   "etasje1_gang", fra);
