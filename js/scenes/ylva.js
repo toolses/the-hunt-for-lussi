@@ -21,7 +21,7 @@ scene("etasje1_ylva", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
-  setupHUD();
+  setupGlobalUI();
 
   // ── Godbiter (treats) ────────────────────────────────────────
   addTreat(5,  9,  "ylva");

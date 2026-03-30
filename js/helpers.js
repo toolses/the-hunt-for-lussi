@@ -384,6 +384,53 @@ function addTreat(col, row, sceneKey) {
 }
 
 // ────────────────────────────────────────────────────────────
+// CLICKABLE INTERACTION INDICATOR
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a pulsing clickable indicator near `parentObj`.
+ * Visible only when the player is within 64px AND `condition()` is true.
+ * On click, calls `onInteract()`.
+ *
+ * @param parentObj   Game object with .pos (e.g. from makeSpriteDeco)
+ * @param condition   Function returning true when interaction is available
+ * @param onInteract  Callback executed on click
+ * @returns           The indicator game object
+ */
+function addInteraction(parentObj, condition, onInteract) {
+  var indicator = add([
+    circle(12),
+    color(255, 230, 50),
+    pos(parentObj.pos.x + 16, parentObj.pos.y - 12),
+    anchor("center"),
+    area(),
+    z(15),
+    opacity(0),
+  ]);
+
+  indicator.onUpdate(function() {
+    if (!condition()) {
+      indicator.opacity = 0;
+      return;
+    }
+    // Always visible when condition met; pulse animation
+    indicator.opacity = 0.55 + Math.sin(time() * 5) * 0.45;
+    var s = 1 + Math.sin(time() * 3) * 0.15;
+    indicator.scale = vec2(s);
+  });
+
+  indicator.onClick(function() {
+    var p = get("player")[0];
+    if (!p) return;
+    if (indicator.opacity > 0 && p.pos.dist(parentObj.pos) < 64) {
+      onInteract();
+    }
+  });
+
+  return indicator;
+}
+
+// ────────────────────────────────────────────────────────────
 // MESSAGES
 // ────────────────────────────────────────────────────────────
 
@@ -456,6 +503,8 @@ function addRoomLussi(roomKey, hidePos, indicatorPos, doorTarget, player, trigge
     if (player.pos.dist(lussi.pos) < triggerDist) {
       triggered = true;
       roomsSearched[roomKey] = true;
+      questState.searchRooms.current =
+        Object.values(roomsSearched).filter(function(v) { return v; }).length;
       lussi.z = 10;
       if (indicator.exists()) destroy(indicator);
 
@@ -577,44 +626,109 @@ function setupControls(player, followCamera) {
     collectedTreats[t._key] = true;
     destroy(t);
     treatsCount++;
+    questState.collectFish.current = treatsCount;
     try { play("lyd_pling"); } catch(e) {}
   });
 }
 
 // ────────────────────────────────────────────────────────────
-// HUD — treats collected + rooms searched
+// GLOBAL UI — quest log + inventory bar
 // ────────────────────────────────────────────────────────────
 
 /**
- * Adds a fixed HUD overlay showing:
- *   - Treats collected  (top-right)
- *   - Rooms searched    (below that, light blue)
+ * Adds a fixed UI overlay with:
+ *   - Quest log   (top-left)
+ *   - Inventory   (bottom-center)
  * Call once per game scene (not on start/vinn screens).
  */
-function setupHUD() {
-  var roomsTotal = Object.keys(roomsSearched).length;
+function setupGlobalUI() {
+  // ── Quest Log (top-left) ─────────────────────────────────
 
-  var treatLabel = add([
-    text("🐟 x 0", { size: 20 }),
-    pos(790, 10),
-    anchor("topright"),
+  add([
+    rect(280, 68, { radius: 6 }),
+    pos(5, 5),
+    fixed(),
+    color(0, 0, 0),
+    opacity(0.35),
+    z(99),
+  ]);
+
+  var searchLabel = add([
+    text("", { size: 14 }),
+    pos(10, 10),
     fixed(),
     z(100),
   ]);
-  treatLabel.onUpdate(function() {
-    treatLabel.text = "🐟 x " + treatsCount;
+  searchLabel.onUpdate(function() {
+    questState.searchRooms.current =
+      Object.values(roomsSearched).filter(function(v) { return v; }).length;
+    searchLabel.text = "🔍 Finn Lussi (" +
+      questState.searchRooms.current + "/" +
+      questState.searchRooms.total + " rom sjekket)";
   });
 
-  var roomLabel = add([
-    text("0 / 5 rom", { size: 16 }),
-    pos(790, 36),
-    anchor("topright"),
+  var fishLabel = add([
+    text("", { size: 14 }),
+    pos(10, 32),
     fixed(),
-    color(190, 225, 255),
     z(100),
   ]);
-  roomLabel.onUpdate(function() {
-    var n = Object.values(roomsSearched).filter(function(v) { return v; }).length;
-    roomLabel.text = n + " / " + roomsTotal + " rom";
+  fishLabel.onUpdate(function() {
+    questState.collectFish.current = treatsCount;
+    fishLabel.text = "🐟 Finn godbiter (" +
+      questState.collectFish.current + "/" +
+      questState.collectFish.total + ")";
+  });
+
+  var bowlLabel = add([
+    text("", { size: 14 }),
+    pos(10, 54),
+    fixed(),
+    z(100),
+  ]);
+  bowlLabel.onUpdate(function() {
+    var step = questState.waterQuest.step;
+    if (step === "done") {
+      bowlLabel.text = "✅ Vannskålen er klar!";
+      bowlLabel.color = rgb(150, 200, 150);
+    } else if (step === "find_bowl") {
+      bowlLabel.text = "💧 Finn vannskålen";
+      bowlLabel.color = rgb(255, 255, 255);
+    } else if (step === "fill_water") {
+      bowlLabel.text = "💧 Fyll vann";
+      bowlLabel.color = rgb(255, 255, 255);
+    } else if (step === "place_bowl") {
+      bowlLabel.text = "💧 Sett ned vannet";
+      bowlLabel.color = rgb(255, 255, 255);
+    }
+  });
+
+  // ── Inventory Bar (bottom-center) ────────────────────────
+
+  add([
+    rect(120, 36, { radius: 6 }),
+    pos(400, 574),
+    anchor("center"),
+    fixed(),
+    color(0, 0, 0),
+    opacity(0.35),
+    z(99),
+  ]);
+
+  var invSlot = add([
+    text("", { size: 20 }),
+    pos(400, 574),
+    anchor("center"),
+    fixed(),
+    z(100),
+  ]);
+  invSlot.onUpdate(function() {
+    if (inventory.includes("full_vannskaal")) {
+      invSlot.text = "💧";
+    } else if (inventory.includes("tom_vannskaal")) {
+      invSlot.text = "🥣";
+    } else {
+      invSlot.text = "";
+    }
   });
 }

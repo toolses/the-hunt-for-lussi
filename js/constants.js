@@ -25,6 +25,33 @@ function resetTreats() {
   collectedTreats = {};
 }
 
+// ── Inventory ─────────────────────────────────────────────────
+let inventory = [];
+
+// ── Quest state ───────────────────────────────────────────────
+let questState = {
+  searchRooms: { active: true, current: 0, total: 5 },
+  collectFish: { active: true, current: 0, total: 11 },
+  waterQuest:  { active: true, step: "find_bowl" },
+  // steps: "find_bowl" → "fill_water" → "place_bowl" → "done"
+};
+
+function resetQuests() {
+  inventory = [];
+  questState.searchRooms.current = 0;
+  questState.collectFish.current = 0;
+  questState.waterQuest = { active: true, step: "find_bowl" };
+}
+
+// ── VO helper (try/catch for missing audio files) ─────────────
+function playVO(soundName) {
+  try {
+    play(soundName);
+  } catch(e) {
+    console.log("VO Placeholder: " + soundName);
+  }
+}
+
 // ── Room geometry (19×14 tile grid at 32px/tile) ─────────────
 // Canvas: 800×600. Room: 608×448. Margins: 96px left/right, 76px top/bottom.
 const ROOM_OX    = 96;   // left margin

@@ -21,7 +21,7 @@ scene("etasje1_bad", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
-  setupHUD();
+  setupGlobalUI();
 
   // ── Lussi hides behind the bathtub ───────────────────────────
   addRoomLussi("etasje1_bad",

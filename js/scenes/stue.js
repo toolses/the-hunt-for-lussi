@@ -34,7 +34,7 @@ scene("etasje2_stue", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
-  setupHUD();
+  setupGlobalUI();
 
   // ── Godbiter (treats) ────────────────────────────────────────
   addTreat(4,  5,  "stue");  // upper half, left area

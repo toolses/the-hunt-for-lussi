@@ -20,7 +20,7 @@ scene("etasje2_mamma", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
-  setupHUD();
+  setupGlobalUI();
 
   // ── Godbiter (treats) ────────────────────────────────────────
   addTreat(6,  7,  "mamma");  // center of room

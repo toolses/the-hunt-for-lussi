@@ -113,6 +113,7 @@ loadSprite("chair_right",     MI + "Kitchen/Kitchen_Singles_32x32_282_Chair_Faci
 loadSprite("chair_left",      MI + "Kitchen/Kitchen_Singles_32x32_286_Chair_Facing_Left.png");    // 32x64  (1x2)
 loadSprite("kitchen_table",   MI + "Kitchen/Kitchen_Singles_32x32_309_Table.png");                // 64x64  (2x2)
 loadSprite("kitchen_faucet",  MI + "Kitchen/Kitchen_Singles_32x32_374_Faucet_Facing_Left.png");   // 32x80  (1x2.5)
+loadSprite("cupboard",        MI + "Kitchen/Kitchen_Singles_32x32_Cupboard.png");                 // cupboard
 
 // ── Exterior sprites ──────────────────────────────────────────
 loadSprite("me_house",      ME + "24_Additional_Houses_Terraced_House_3_16x16.png");

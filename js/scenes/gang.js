@@ -36,7 +36,7 @@ scene("etasje1_gang", function(args) {
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
   setupControls(player, false);
-  setupHUD();
+  setupGlobalUI();
 
   // ── Door transitions ─────────────────────────────────────────
   onDoor(player, "door_etasje1_bad",   "etasje1_bad",   "etasje1_gang", fra);
@@ -44,7 +44,7 @@ scene("etasje1_gang", function(args) {
   onDoor(player, "door_etasje1_vetle", "etasje1_vetle", "etasje1_gang", fra);
   onDoor(player, "stairs_up",          "etasje2_stue",  "etasje1_gang", fra);
 
-  // ── Ytterdør — locked until all rooms searched ───────────────
+  // ── Ytterdør — always accessible ─────────────────────────────
   var gataReady = (fra === "gata") ? false : true;
   if (!gataReady) wait(1, function() { gataReady = true; });
 
@@ -57,12 +57,7 @@ scene("etasje1_gang", function(args) {
 
   player.onCollide("door_gata", function() {
     if (!gataReady) return;
-    if (allRoomsSearched()) {
-      go("gata", { fra: "etasje1_gang" });
-    } else {
-      showMessage("Kanskje Lussi har gjemt seg\ni ett av rommene?", 3);
-      play("lyd_lussi_gjemt_inne");
-    }
+    go("gata", { fra: "etasje1_gang" });
   });
 
 });
