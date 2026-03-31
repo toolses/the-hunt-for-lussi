@@ -31,15 +31,21 @@ async function getCanvasBounds(page) {
 
 /**
  * Click at game-world coordinates on the canvas.
- * Maps 800x600 game coords to actual canvas pixel position.
+ * Maps 800x600 game coords to actual canvas pixel position,
+ * accounting for Kaplay's letterbox scaling.
  */
 async function clickGameCoord(page, gx, gy) {
   const bounds = await getCanvasBounds(page);
   if (!bounds) throw new Error("Canvas not found");
-  const scaleX = bounds.width / 800;
-  const scaleY = bounds.height / 600;
-  const cx = bounds.x + gx * scaleX;
-  const cy = bounds.y + gy * scaleY;
+  // Kaplay letterbox: scale to fit while maintaining 800x600 aspect ratio
+  const gameW = 800, gameH = 600;
+  const scale = Math.min(bounds.width / gameW, bounds.height / gameH);
+  const vpW = gameW * scale;
+  const vpH = gameH * scale;
+  const offsetX = (bounds.width - vpW) / 2;
+  const offsetY = (bounds.height - vpH) / 2;
+  const cx = bounds.x + offsetX + gx * scale;
+  const cy = bounds.y + offsetY + gy * scale;
   await page.mouse.click(cx, cy);
 }
 

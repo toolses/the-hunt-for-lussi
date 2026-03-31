@@ -371,7 +371,6 @@ function addTreat(col, row, sceneKey) {
     text("🐟", { size: 22 }),
     pos(baseX, baseY),
     anchor("center"),
-    area(),
     z(7),
     "treat",
     { _baseY: baseY, _phase: bobPhase, _key: key },
@@ -621,13 +620,19 @@ function setupControls(player, followCamera) {
     else              camPos(vec2(400, 300));
   });
 
-  // Treat pickup
-  player.onCollide("treat", function(t) {
-    collectedTreats[t._key] = true;
-    destroy(t);
-    treatsCount++;
-    questState.collectFish.current = treatsCount;
-    try { play("lyd_pling"); } catch(e) {}
+  // Treat pickup — proximity-based (treats have no body/area)
+  player.onUpdate(function() {
+    var treats = get("treat");
+    for (var i = 0; i < treats.length; i++) {
+      var t = treats[i];
+      if (player.pos.dist(t.pos) < 28) {
+        collectedTreats[t._key] = true;
+        destroy(t);
+        treatsCount++;
+        questState.collectFish.current = treatsCount;
+        try { play("lyd_pling"); } catch(e) {}
+      }
+    }
   });
 }
 

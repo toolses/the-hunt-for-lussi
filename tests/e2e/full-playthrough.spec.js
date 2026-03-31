@@ -8,6 +8,7 @@ const {
   clickGameCoord,
   goToScene,
   teleportPlayer,
+  movePlayerTo,
   pressKeyFor,
   getGameState,
   getCurrentScene,
@@ -19,20 +20,20 @@ const {
 async function collectTreat(page, col, row) {
   const tx = 96 + col * 32 + 16;
   const ty = 76 + row * 32 + 16;
-  await teleportPlayer(page, tx - 50, ty);
-  await page.waitForTimeout(100);
-  await pressKeyFor(page, "ArrowRight", 600);
+  await teleportPlayer(page, tx - 60, ty);
+  await page.waitForTimeout(200);
+  await movePlayerTo(page, tx + 20, ty, 3000);
   await page.waitForTimeout(200);
 }
 
 /** Interact with an object by teleporting close and clicking indicator */
 async function interactNear(page, objX, objY) {
-  await teleportPlayer(page, objX + 10, objY + 30);
-  await page.waitForTimeout(400);
+  await teleportPlayer(page, objX, objY + 40);
+  await page.waitForTimeout(500);
   await clickGameCoord(page, objX + 16, objY - 12);
-  await page.waitForTimeout(200);
-  await clickGameCoord(page, objX + 16, objY - 7);
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
+  await clickGameCoord(page, objX + 16, objY - 12);
+  await page.waitForTimeout(300);
 }
 
 /** Approach Lussi to trigger flee, wait for cooldown */
@@ -83,7 +84,7 @@ test.describe("Full Playthrough", () => {
     state = await getGameState(page);
     expect(state.questState.waterQuest.step).toBe("place_bowl");
 
-    await interactNear(page, 240, 184); // water spot
+    await interactNear(page, 328, 184); // water spot
     state = await getGameState(page);
     expect(state.questState.waterQuest.step).toBe("done");
 

@@ -10,6 +10,7 @@ const {
   goToScene,
   teleportPlayer,
   movePlayerTo,
+  pressKeyFor,
   waitForScene,
   setGameState,
   startGameAs,
@@ -58,10 +59,10 @@ test.describe("Scene Navigation", () => {
 
   test("Mamma → Stue (arch door)", async ({ page }) => {
     await goToScene(page, "etasje2_mamma");
-    // Arch doorway at (352, 492), 64x32. Walk into the doorway trigger.
+    // Arch doorway at (352, 492), 64x32. Walk into it from above.
     await teleportPlayer(page, 384, 470);
-    await movePlayerTo(page, 384, 500);
-    await waitForScene(page, "etasje2_stue", 8000);
+    await movePlayerTo(page, 384, 510);
+    await waitForScene(page, "etasje2_stue", 5000);
     expect(await getCurrentScene(page)).toBe("etasje2_stue");
   });
 

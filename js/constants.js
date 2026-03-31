@@ -120,7 +120,7 @@ const SPAWNS = {
   // Stue
   "etasje2_stue_default":             vec2(360, 360),
   "etasje2_stue_fra_etasje1_gang":    vec2(590, 430),
-  "etasje2_stue_fra_etasje2_mamma":   vec2(STUE_MAMMA_GAP_X+32, ROOM_OY+TOP_WALL_H+32),
+  "etasje2_stue_fra_etasje2_mamma":   vec2(450, ROOM_OY+TOP_WALL_H+32),
   "etasje2_stue_fra_etasje2_kjokken": vec2(STUE_KJK_GAP_X+32, ROOM_OY+TOP_WALL_H+32),
 
   // Mamma

@@ -16,20 +16,17 @@ const {
  * the interaction indicator. Retries a few positions to be robust.
  */
 async function interactNear(page, objX, objY) {
-  // Teleport player within 64px
-  await teleportPlayer(page, objX + 10, objY + 30);
-  await page.waitForTimeout(400);
+  // Teleport player within 64px — offset below object center
+  await teleportPlayer(page, objX, objY + 40);
+  await page.waitForTimeout(500);
 
-  // The indicator is at (objX+16, objY-12) — try clicking it
-  // and a few nearby positions in case of minor misalignment
+  // The indicator is at (objX+16, objY-12) — click it twice for reliability
   const indicatorX = objX + 16;
   const indicatorY = objY - 12;
   await clickGameCoord(page, indicatorX, indicatorY);
-  await page.waitForTimeout(200);
-
-  // If that didn't work, try the object position itself
-  await clickGameCoord(page, indicatorX, indicatorY + 5);
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
+  await clickGameCoord(page, indicatorX, indicatorY);
+  await page.waitForTimeout(300);
 }
 
 test.describe("Water Quest", () => {
@@ -77,8 +74,8 @@ test.describe("Water Quest", () => {
     });
     await goToScene(page, "etasje2_kjokken");
 
-    // Water spot: bowlPos.x+32 = tileX(6)+8+32=240, bowlPos.y = tileY(3)+12=184
-    await interactNear(page, 240, 184);
+    // Water spot: bowlPos.x+32 = tileX(6)+8+32=328, bowlPos.y = tileY(3)+12=184
+    await interactNear(page, 328, 184);
 
     const state = await getGameState(page);
     expect(state.inventory).not.toContain("full_vannskaal");
@@ -120,8 +117,8 @@ test.describe("Water Quest", () => {
     state = await getGameState(page);
     expect(state.questState.waterQuest.step).toBe("place_bowl");
 
-    // Step 3: place bowl at (240, 184)
-    await interactNear(page, 240, 184);
+    // Step 3: place bowl at (328, 184)
+    await interactNear(page, 328, 184);
     state = await getGameState(page);
     expect(state.questState.waterQuest.step).toBe("done");
     expect(state.inventory.length).toBe(0);

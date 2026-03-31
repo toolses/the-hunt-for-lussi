@@ -16,15 +16,17 @@ const {
 
 /**
  * Walk the player through a treat at (col, row) to pick it up.
- * Teleport to the left, then walk right through the treat position.
+ * Teleport to the left, then walk right to the treat position only
+ * (using movePlayerTo to avoid overshooting into door triggers).
  */
 async function collectTreat(page, col, row) {
   const tx = 96 + col * 32 + 16;
   const ty = 76 + row * 32 + 16;
-  // Teleport well to the left of the treat, then walk right through it
-  await teleportPlayer(page, tx - 50, ty);
-  await page.waitForTimeout(100);
-  await pressKeyFor(page, "ArrowRight", 600);
+  // Teleport 60px left of the treat
+  await teleportPlayer(page, tx - 60, ty);
+  await page.waitForTimeout(200);
+  // Walk right to 20px past the treat (proximity pickup radius is 28px)
+  await movePlayerTo(page, tx + 20, ty, 3000);
   await page.waitForTimeout(200);
 }
 
