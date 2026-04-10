@@ -35,7 +35,7 @@ scene("etasje1_ylva", function(args) {
     { x: ROOM_OX + ROOM_W, y: YLVA_GANG_DOOR_Y + 32 },
     player);
 
-  wait(2, function() { play("lyd_ylva_rom"); });
+  wait(2, function() { say("enter_ylva"); });
 
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_ylva", fra);
 

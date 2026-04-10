@@ -97,6 +97,10 @@ scene("gata", function(args) {
   // ── Lussi only appears once all rooms have been searched ──────
   if (allRoomsSearched()) {
 
+    // Activate the Lussi chase quest
+    questState.lussiChase.active = true;
+    questState.lussiChase.status = "chasing";
+
     // ── Potespor fra inngangsdøren til gjemmestedet ─────────────
     var paws = [
       [130,388],[133,398],[138,409],
@@ -146,24 +150,10 @@ scene("gata", function(args) {
       z(11),
     ]);
 
-    var escapeCounter = add([
-      text("", { size: 13 }),
-      pos(10, 50),
-      fixed(),
-      color(255, 200, 100),
-      opacity(0.9),
-      z(50),
-    ]);
-
     function updateEscapeUI() {
       if (lussiCatchable) {
-        escapeCounter.text = "Lussi lukter godbiter! Fang henne!";
         lussiIndicator.text = "!";
         lussiIndicator.color = rgb(100, 255, 100);
-      } else {
-        var hearts = "";
-        for (var i = 0; i < LUSSI_ESCAPES_NEEDED - lussiEscapes; i++) hearts += "♥";
-        escapeCounter.text = "Lussi: " + hearts;
       }
     }
     updateEscapeUI();
@@ -188,7 +178,7 @@ scene("gata", function(args) {
 
       lussi.play("run"); lussi.currentAnim = "run";
       lussi.flipX = (target.x < lussi.pos.x);
-      showMessage("Mjau! Lussi stakk av!", 1.5);
+      say("lussi_fled");
 
       var moveUpdate = lussi.onUpdate(function() {
         var dir = target.sub(lussi.pos);
@@ -198,7 +188,10 @@ scene("gata", function(args) {
           lussi.play("idle"); lussi.currentAnim = "idle";
           lussiCooldown = true;
           wait(1.5, function() { lussiCooldown = false; });
-          if (lussiEscapes >= LUSSI_ESCAPES_NEEDED) lussiCatchable = true;
+          if (lussiEscapes >= LUSSI_ESCAPES_NEEDED) {
+            lussiCatchable = true;
+            questState.lussiChase.status = "catchable";
+          }
           updateEscapeUI();
           return;
         }
@@ -214,7 +207,10 @@ scene("gata", function(args) {
     // ── Kollisjon: Lussi ────────────────────────────────────────
     player.onCollide("lussi", function() {
       if (lussiRunning || lussiCooldown) return;
-      if (lussiCatchable) go("vinn");
+      if (lussiCatchable) {
+        questState.lussiChase.status = "done";
+        go("vinn");
+      }
       else lussiFleeFrom(player.pos);
     });
     player.onUpdate(function() {
@@ -228,7 +224,7 @@ scene("gata", function(args) {
   } else {
     // Lussi is not outside yet — hint to check rooms
     wait(0.5, function() {
-      showMessage("Lussi er ikke her ute.\nHar du sjekket alle rommene?", 3);
+      say("lussi_not_outside");
     });
   }
 

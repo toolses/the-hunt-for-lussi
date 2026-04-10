@@ -33,7 +33,9 @@ let questState = {
   searchRooms: { active: true, current: 0, total: 5 },
   collectFish: { active: true, current: 0, total: 11 },
   waterQuest:  { active: true, step: "find_bowl" },
+  lussiChase:  { active: false, status: "not_started" },
   // steps: "find_bowl" → "fill_water" → "place_bowl" → "done"
+  // lussiChase statuses: "not_started" → "chasing" → "catchable" → "done"
 };
 
 function resetQuests() {
@@ -41,15 +43,7 @@ function resetQuests() {
   questState.searchRooms.current = 0;
   questState.collectFish.current = 0;
   questState.waterQuest = { active: true, step: "find_bowl" };
-}
-
-// ── VO helper (try/catch for missing audio files) ─────────────
-function playVO(soundName) {
-  try {
-    play(soundName);
-  } catch(e) {
-    console.log("VO Placeholder: " + soundName);
-  }
+  questState.lussiChase = { active: false, status: "not_started" };
 }
 
 // ── Room geometry (19×14 tile grid at 32px/tile) ─────────────

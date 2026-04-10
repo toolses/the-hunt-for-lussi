@@ -45,7 +45,12 @@ scene("etasje2_stue", function(args) {
   addRoomLussi("etasje2_stue",
     { x: tileX(3),  y: tileY(11) },
     { x: tileX(3),  y: tileY(10) },
-    { x: STUE_MAMMA_GAP_X + 48, y: ROOM_OY },
+    function() {
+      // If Mamma's room is already searched, Lussi flees to the stairs instead
+      return roomsSearched["etasje2_mamma"]
+        ? { x: tileX(15), y: tileY(6) }
+        : { x: STUE_MAMMA_GAP_X + 48, y: ROOM_OY };
+    },
     player);
 
   onDoor(player, "door_etasje2_mamma",  "etasje2_mamma",  "etasje2_stue", fra);

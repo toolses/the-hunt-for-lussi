@@ -50,8 +50,7 @@ scene("etasje1_gang", function(args) {
 
   if (allRoomsSearched()) {
     wait(0.5, function() {
-      showMessage("Kanskje Lussi har gått ut?", 3);
-      play("lyd_gaat_ut");
+      say("hint_check_outside");
     });
   }
 

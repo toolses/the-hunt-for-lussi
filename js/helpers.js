@@ -441,7 +441,7 @@ function showMessage(msg, duration) {
   duration = duration || 3;
   get("tempMsg").forEach(destroy);
   var label = add([
-    text(msg, { size: 22, align: "center" }),
+    text(msg, { size: 20, align: "center" }),
     pos(center().add(0, 120)),
     anchor("center"),
     fixed(),
@@ -508,11 +508,12 @@ function addRoomLussi(roomKey, hidePos, indicatorPos, doorTarget, player, trigge
       if (indicator.exists()) destroy(indicator);
 
       wait(0.3, function() {
+        var target = (typeof doorTarget === "function") ? doorTarget() : doorTarget;
         lussi.play("run");
-        lussi.flipX = (doorTarget.x < lussi.pos.x);
+        lussi.flipX = (target.x < lussi.pos.x);
         var speed = 280;
         var moveHandler = lussi.onUpdate(function() {
-          var dir = vec2(doorTarget.x, doorTarget.y).sub(lussi.pos);
+          var dir = vec2(target.x, target.y).sub(lussi.pos);
           if (dir.len() < 12) {
             moveHandler.cancel();
             if (lussi.exists()) destroy(lussi);
@@ -649,7 +650,7 @@ function setupControls(player, followCamera) {
 function setupGlobalUI() {
   // ── Quest Log (top-left) ─────────────────────────────────
 
-  add([
+  var questBg = add([
     rect(280, 68, { radius: 6 }),
     pos(5, 5),
     fixed(),
@@ -667,9 +668,15 @@ function setupGlobalUI() {
   searchLabel.onUpdate(function() {
     questState.searchRooms.current =
       Object.values(roomsSearched).filter(function(v) { return v; }).length;
-    searchLabel.text = "🔍 Finn Lussi (" +
-      questState.searchRooms.current + "/" +
-      questState.searchRooms.total + " rom sjekket)";
+    if (questState.searchRooms.current >= questState.searchRooms.total) {
+      searchLabel.text = "✅ Alle rom sjekket!";
+      searchLabel.color = rgb(150, 200, 150);
+    } else {
+      searchLabel.text = "🔍 Finn Lussi (" +
+        questState.searchRooms.current + "/" +
+        questState.searchRooms.total + " rom sjekket)";
+      searchLabel.color = rgb(255, 255, 255);
+    }
   });
 
   var fishLabel = add([
@@ -680,9 +687,15 @@ function setupGlobalUI() {
   ]);
   fishLabel.onUpdate(function() {
     questState.collectFish.current = treatsCount;
-    fishLabel.text = "🐟 Finn godbiter (" +
-      questState.collectFish.current + "/" +
-      questState.collectFish.total + ")";
+    if (questState.collectFish.current >= questState.collectFish.total) {
+      fishLabel.text = "✅ Alle godbiter funnet!";
+      fishLabel.color = rgb(150, 200, 150);
+    } else {
+      fishLabel.text = "🐟 Finn godbiter (" +
+        questState.collectFish.current + "/" +
+        questState.collectFish.total + ")";
+      fishLabel.color = rgb(255, 255, 255);
+    }
   });
 
   var bowlLabel = add([
@@ -705,6 +718,33 @@ function setupGlobalUI() {
     } else if (step === "place_bowl") {
       bowlLabel.text = "💧 Sett ned vannet";
       bowlLabel.color = rgb(255, 255, 255);
+    }
+  });
+
+  var chaseLabel = add([
+    text("", { size: 14 }),
+    pos(10, 76),
+    fixed(),
+    z(100),
+  ]);
+  chaseLabel.onUpdate(function() {
+    var chase = questState.lussiChase;
+    if (!chase.active) {
+      chaseLabel.text = "";
+      // Resize background to 3 lines when chase quest is hidden
+      questBg.height = 68;
+    } else if (chase.status === "done") {
+      chaseLabel.text = "✅ Lussi er fanget!";
+      chaseLabel.color = rgb(150, 200, 150);
+      questBg.height = 90;
+    } else if (chase.status === "catchable") {
+      chaseLabel.text = "😺 Fang Lussi!";
+      chaseLabel.color = rgb(100, 255, 100);
+      questBg.height = 90;
+    } else {
+      chaseLabel.text = "😺 Prøv å fange Lussi!";
+      chaseLabel.color = rgb(255, 255, 255);
+      questBg.height = 90;
     }
   });
 

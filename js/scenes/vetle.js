@@ -35,7 +35,7 @@ scene("etasje1_vetle", function(args) {
     { x: ARCH_DOOR_X + 48, y: ARCH_DOOR_Y + 32 },
     player);
 
-  wait(2, function() { play("lyd_vetle_rom"); });
+  wait(2, function() { say("enter_vetle"); });
 
   onDoor(player, "door_etasje1_gang", "etasje1_gang", "etasje1_vetle", fra);
 

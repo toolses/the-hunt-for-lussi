@@ -191,9 +191,16 @@ loadSprite("raw_arches",     RB + "Room_Builder_Arched_Entryways_32x32.png");
 // Treat pickup sound — add the file to enable (e.g. assets/Sound/pling.wav):
 // loadSound("lyd_pling", "assets/Sound/pling.wav");
 
+// Background music (looping) — add the file to enable (e.g. assets/Music/Track 1 (Let's Go).wav):
 loadSound("bgmusic",            "assets/Music/Track 1 (Let's Go).wav");
+
+// Dialogue voice-overs — add the files to enable (e.g. assets/Voice/vo_fant_skaal.m4a):
 loadSound("lyd_matskaal",       "assets/voice/lussi-bowl.m4a");
 loadSound("lyd_vetle_rom",      "assets/Voice/vetle-rom.m4a");
 loadSound("lyd_ylva_rom",       "assets/Voice/ylva-rom.m4a");
-loadSound("lyd_gaat_ut",        "assets/Voice/har-lussi-gaat-ut.m4a");
-loadSound("lyd_lussi_gjemt_inne","assets/Voice/lussi-gjemt-seg-inne.m4a");
+loadSound("vo_lussi_gaat_ut",          "assets/Voice/vo_lussi_gaat_ut.m4a");
+loadSound("lyd_lussi_gjemt_inne", "assets/Voice/lussi-gjemt-seg-inne.m4a");
+loadSound("vo_fant_skaal",        "assets/Voice/vo_fant_skaal.m4a");
+loadSound("vo_fyller_vann",       "assets/Voice/vo_fyller_vann.m4a");
+loadSound("vo_vann_ferdig",       "assets/Voice/vo_vann_ferdig.m4a");
+loadSound("vo_lussi_ikke_ute",    "assets/Voice/vo_lussi_ikke_ute.m4a");

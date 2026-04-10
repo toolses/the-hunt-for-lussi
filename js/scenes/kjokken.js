@@ -47,8 +47,7 @@ scene("etasje2_kjokken", function(args) {
   }, function() {
     inventory.push("tom_vannskaal");
     questState.waterQuest.step = "fill_water";
-    showMessage("Du fant en tom vannskål!", 3);
-    playVO("vo_fant_skaal");
+    say("water_bowl_found");
   });
 
   // ── Interaction 2: Faucet → fill with water ───────────────
@@ -59,8 +58,7 @@ scene("etasje2_kjokken", function(args) {
     if (idx > -1) inventory.splice(idx, 1);
     inventory.push("full_vannskaal");
     questState.waterQuest.step = "place_bowl";
-    showMessage("Du fylte vannskålen!", 3);
-    playVO("vo_fyller_vann");
+    say("water_bowl_filled");
   });
 
   // ── Interaction 3: Floor spot → place water bowl ──────────
@@ -74,8 +72,7 @@ scene("etasje2_kjokken", function(args) {
     add([circle(12), pos(waterSpot), color(0, 0, 0),     anchor("center"), z(6)]);
     add([circle(10), pos(waterSpot), color(80, 170, 240), anchor("center"), z(7)]);
     add([text("💧", { size: 10 }), pos(waterSpot.x, waterSpot.y - 18), anchor("center"), z(7)]);
-    showMessage("Lussi har nå ferskt vann!", 3);
-    playVO("vo_vann_ferdig");
+    say("water_bowl_done");
   });
 
   onDoor(player, "door_etasje2_stue", "etasje2_stue", "etasje2_kjokken", fra);
