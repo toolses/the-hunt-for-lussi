@@ -179,6 +179,38 @@ loadSprite("vetle_run", ASSET + "Characters_free/Adam_run_16x16.png", {
 loadSprite("ylva",  ASSET + "Characters_free/Amelia_idle_16x16.png", { sliceX: 4 });
 loadSprite("vetle", ASSET + "Characters_free/Adam_idle_16x16.png",   { sliceX: 4 });
 
+// ── Character Generator — kids layer sprites ──────────────────
+const GEN = "assets/Character_Generator/kids/";
+
+// Bodies (sliceX:24, sliceY:8 = 768×256)
+(function() {
+  for (var b = 1; b <= 4; b++) {
+    loadSprite("gen_body_" + b,
+      GEN + "Body_" + b + "_kid_32x32.png",
+      { sliceX: 24, sliceY: 8 });
+  }
+  // Eyes (sliceX:24, sliceY:6 = 768×192)
+  for (var e = 1; e <= 6; e++) {
+    loadSprite("gen_eyes_" + e,
+      GEN + "Eyes_kids_32x32_" + e + ".png",
+      { sliceX: 24, sliceY: 6 });
+  }
+  // Outfits (sliceX:24, sliceY:6 = 768×192)
+  for (var o = 1; o <= 5; o++) {
+    loadSprite("gen_outfit_" + o,
+      GEN + "Outfit_kid_" + o + "_32x32.png",
+      { sliceX: 24, sliceY: 6 });
+  }
+  // Hairstyles 6 styles × 5 colors (sliceX:24, sliceY:8 = 768×256)
+  for (var h = 1; h <= 6; h++) {
+    for (var c = 1; c <= 5; c++) {
+      loadSprite("gen_hair_" + h + "_" + c,
+        GEN + "Hairstyle_kid_" + h + "_32x32_" + c + ".png",
+        { sliceX: 24, sliceY: 8 });
+    }
+  }
+})();
+
 // ── Dev tool: raw spritesheets ──────────────────────────────────
 loadSprite("raw_walls",      RB + "Room_Builder_Walls_32x32.png");
 loadSprite("raw_floors",     RB + "Room_Builder_Floors_32x32.png");

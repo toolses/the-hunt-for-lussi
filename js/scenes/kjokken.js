@@ -38,7 +38,7 @@ scene("etasje2_kjokken", function(args) {
 
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
-  setupControls(player, false);
+  setupControls(player, false, "etasje2_kjokken");
   setupGlobalUI();
 
   // ── Interaction 1: Cupboard → find empty bowl ─────────────
@@ -48,6 +48,7 @@ scene("etasje2_kjokken", function(args) {
     inventory.push("tom_vannskaal");
     questState.waterQuest.step = "fill_water";
     say("water_bowl_found");
+    saveGame();
   });
 
   // ── Interaction 2: Faucet → fill with water ───────────────
@@ -59,6 +60,7 @@ scene("etasje2_kjokken", function(args) {
     inventory.push("full_vannskaal");
     questState.waterQuest.step = "place_bowl";
     say("water_bowl_filled");
+    saveGame();
   });
 
   // ── Interaction 3: Floor spot → place water bowl ──────────
@@ -73,6 +75,7 @@ scene("etasje2_kjokken", function(args) {
     add([circle(10), pos(waterSpot), color(80, 170, 240), anchor("center"), z(7)]);
     add([text("💧", { size: 10 }), pos(waterSpot.x, waterSpot.y - 18), anchor("center"), z(7)]);
     say("water_bowl_done");
+    saveGame();
   });
 
   onDoor(player, "door_etasje2_stue", "etasje2_stue", "etasje2_kjokken", fra);

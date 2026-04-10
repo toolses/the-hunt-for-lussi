@@ -35,7 +35,7 @@ scene("etasje1_gang", function(args) {
 
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
-  setupControls(player, false);
+  setupControls(player, false, "etasje1_gang");
   setupGlobalUI();
 
   // ── Door transitions ─────────────────────────────────────────

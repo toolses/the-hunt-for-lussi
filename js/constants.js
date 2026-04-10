@@ -4,6 +4,7 @@
 
 const PLAYER_SPEED = 200;
 let bgMusicPlaying = false;
+let isMuted = false;
 
 // ── Room search state ────────────────────────────────────────
 let roomsSearched = {
@@ -62,6 +63,23 @@ function tileY(row) { return ROOM_OY + row * 32; }
 
 // Selected character — set on start screen
 let selectedCharacter = "ylva";
+
+// ── Save system state ────────────────────────────────────────
+let lastScene = "etasje2_kjokken";        // updated by setupControls on scene entry
+let customCharacterDataUrl = null;        // base64 dataUrl for custom character idle sprite
+let customCharacterRunDataUrl = null;    // base64 dataUrl for custom character run sprite
+
+// ── Custom character layer selections ────────────────────────
+let characterLayers = {
+  body:      1,  // 1–4
+  eyes:      1,  // 1–6
+  outfit:    1,  // 1–5
+  hair:      1,  // style 1–6
+  hairColor: 1,  // color 1–5
+};
+function resetCharacterLayers() {
+  characterLayers = { body: 1, eyes: 1, outfit: 1, hair: 1, hairColor: 1 };
+}
 
 // ── Door positions (tile-aligned, 32px grid) ─────────────────
 // Side wall doors: WALL_V wide × 64px tall (2 tiles)

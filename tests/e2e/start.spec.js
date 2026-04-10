@@ -24,8 +24,8 @@ test.describe("Start Screen", () => {
   });
 
   test("selecting Ylva starts the game in kitchen", async ({ page }) => {
-    // Ylva button is at roughly center().add(-110, 100) = (290, 400)
-    await clickGameCoord(page, 290, 400);
+    // Ylva button: center().add(-215, 100) = (185, 400)
+    await clickGameCoord(page, 185, 400);
     await waitForScene(page, "etasje2_kjokken");
 
     const state = await getGameState(page);
@@ -34,8 +34,8 @@ test.describe("Start Screen", () => {
   });
 
   test("selecting Vetle starts the game in kitchen", async ({ page }) => {
-    // Vetle button is at roughly center().add(110, 100) = (510, 400)
-    await clickGameCoord(page, 510, 400);
+    // Vetle button: center().add(0, 100) = (400, 400)
+    await clickGameCoord(page, 400, 400);
     await waitForScene(page, "etasje2_kjokken");
 
     const state = await getGameState(page);
@@ -53,7 +53,7 @@ test.describe("Start Screen", () => {
     });
 
     // Start the game
-    await clickGameCoord(page, 290, 400);
+    await clickGameCoord(page, 185, 400);
     await waitForScene(page, "etasje2_kjokken");
 
     const state = await getGameState(page);

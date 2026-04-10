@@ -17,6 +17,8 @@
 // FLOOR SHADOWS
 // ────────────────────────────────────────────────────────────
 
+var gamePaused = false;   // set by pauseGame() / resume
+
 /**
  * Places semi-transparent shadow tiles along the top and left inner
  * edges of the room (cast by the north and west walls).
@@ -368,7 +370,7 @@ function addTreat(col, row, sceneKey) {
   var baseY = tileY(row) + 16;
   var bobPhase = Math.random() * Math.PI * 2;
   var t = add([
-    text("🐟", { size: 22 }),
+    text("🐟", { size: 18 }),
     pos(baseX, baseY),
     anchor("center"),
     z(7),
@@ -385,6 +387,153 @@ function addTreat(col, row, sceneKey) {
 // ────────────────────────────────────────────────────────────
 // CLICKABLE INTERACTION INDICATOR
 // ────────────────────────────────────────────────────────────
+
+// ────────────────────────────────────────────────────────────
+// SAVE SYSTEM — localStorage persistence
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Saves current game progress to localStorage.
+ * Triggered after collecting treats, searching rooms, and quest steps.
+ */
+function saveGame() {
+  try {
+    var data = {
+      questState:        JSON.parse(JSON.stringify(questState)),
+      inventory:         inventory.slice(),
+      roomsSearched:     Object.assign({}, roomsSearched),
+      treatsCount:       treatsCount,
+      collectedTreats:   Object.assign({}, collectedTreats),
+      selectedCharacter: selectedCharacter,
+      lastScene:         lastScene,
+    };
+    localStorage.setItem("lussi_savegame", JSON.stringify(data));
+    console.log("Progress saved! Scene:", lastScene);
+    showSaveIndicator();
+  } catch(e) {
+    console.warn("Kunne ikke lagre:", e);
+  }
+}
+
+/**
+ * Loads game progress from localStorage.
+ * Returns true if save found, false otherwise.
+ */
+function loadGame() {
+  try {
+    var raw = localStorage.getItem("lussi_savegame");
+    if (!raw) return false;
+    var d = JSON.parse(raw);
+    Object.assign(questState.searchRooms, d.questState.searchRooms);
+    Object.assign(questState.collectFish, d.questState.collectFish);
+    questState.waterQuest = d.questState.waterQuest;
+    questState.lussiChase = d.questState.lussiChase;
+    inventory.length = 0;
+    for (var i = 0; i < d.inventory.length; i++) inventory.push(d.inventory[i]);
+    Object.assign(roomsSearched,   d.roomsSearched   || {});
+    Object.assign(collectedTreats, d.collectedTreats || {});
+    treatsCount       = d.treatsCount       || 0;
+    selectedCharacter = d.selectedCharacter || "ylva";
+    lastScene         = d.lastScene         || "etasje2_kjokken";
+    if (selectedCharacter === "custom") loadCharacter();
+    return true;
+  } catch(e) {
+    console.warn("Kunne ikke laste lagret spill:", e);
+    return false;
+  }
+}
+
+/**
+ * Saves custom character sprite to localStorage.
+ * Called after character creation compositing.
+ */
+function saveCharacter(dataUrl, runDataUrl) {
+  try {
+    var data = {
+      characterLayers:           Object.assign({}, characterLayers),
+      customCharacterDataUrl:    dataUrl,
+      customCharacterRunDataUrl: runDataUrl || null,
+    };
+    localStorage.setItem("lussi_character", JSON.stringify(data));
+  } catch(e) {
+    console.warn("Kunne ikke lagre karakter:", e);
+  }
+}
+
+/**
+ * Loads custom character sprite from localStorage.
+ * Returns true if successful, false otherwise.
+ */
+function loadCharacter() {
+  try {
+    var raw = localStorage.getItem("lussi_character");
+    if (!raw) return false;
+    var d = JSON.parse(raw);
+    Object.assign(characterLayers, d.characterLayers);
+    customCharacterDataUrl = d.customCharacterDataUrl;
+    customCharacterRunDataUrl = d.customCharacterRunDataUrl || null;
+    var idleAnimDef = {
+      sliceX: 24,
+      anims: {
+        "idle_right": { from: 0,  to: 5,  loop: true, speed: 6 },
+        "idle_up":    { from: 6,  to: 11, loop: true, speed: 6 },
+        "idle_left":  { from: 12, to: 17, loop: true, speed: 6 },
+        "idle_down":  { from: 18, to: 23, loop: true, speed: 6 },
+      },
+    };
+    var runAnimDef = {
+      sliceX: 24,
+      anims: {
+        "run_right":  { from: 0,  to: 5,  loop: true, speed: 10 },
+        "run_up":     { from: 6,  to: 11, loop: true, speed: 10 },
+        "run_left":   { from: 12, to: 17, loop: true, speed: 10 },
+        "run_down":   { from: 18, to: 23, loop: true, speed: 10 },
+      },
+    };
+    loadSprite("custom_idle_anim", customCharacterDataUrl, idleAnimDef);
+    // Use separate run strip if available, otherwise fall back to idle strip
+    var runSrc = customCharacterRunDataUrl || customCharacterDataUrl;
+    loadSprite("custom_run", runSrc, runAnimDef);
+    return true;
+  } catch(e) {
+    console.warn("Kunne ikke laste karakter:", e);
+    return false;
+  }
+}
+
+/**
+ * Resets game progress — clears lussi_savegame but never touches lussi_character.
+ * Used when starting a new game.
+ */
+function resetGame() {
+  try { localStorage.removeItem("lussi_savegame"); } catch(e) {}
+  lastScene = "etasje2_kjokken";
+  resetRoomsSearched();
+  resetTreats();
+  resetQuests();
+}
+
+/**
+ * Shows a brief "💾 Lagret!" indicator in top-right corner.
+ * Fades out after 2 seconds.
+ */
+function showSaveIndicator() {
+  var ind = add([
+    text("💾 Lagret!", { size: 14 }),
+    pos(width() - 12, 8),
+    anchor("topright"),
+    color(180, 255, 180),
+    opacity(1),
+    fixed(),
+    z(100),
+  ]);
+  var elapsed = 0;
+  ind.onUpdate(function() {
+    elapsed += dt();
+    if (elapsed > 1.5) ind.opacity = Math.max(0, 1 - (elapsed - 1.5) * 2);
+    if (elapsed > 2.0) destroy(ind);
+  });
+}
 
 /**
  * Adds a pulsing clickable indicator near `parentObj`.
@@ -441,7 +590,7 @@ function showMessage(msg, duration) {
   duration = duration || 3;
   get("tempMsg").forEach(destroy);
   var label = add([
-    text(msg, { size: 20, align: "center" }),
+    text(msg, { size: 16, align: "center" }),
     pos(center().add(0, 120)),
     anchor("center"),
     fixed(),
@@ -504,6 +653,7 @@ function addRoomLussi(roomKey, hidePos, indicatorPos, doorTarget, player, trigge
       roomsSearched[roomKey] = true;
       questState.searchRooms.current =
         Object.values(roomsSearched).filter(function(v) { return v; }).length;
+      saveGame();
       lussi.z = 10;
       if (indicator.exists()) destroy(indicator);
 
@@ -537,11 +687,22 @@ const DIR_NAMES = ["right", "up", "left", "down"];
  * z(7): renders above floor/walls (z≤5) but below arch overhangs (z=10).
  */
 function makePlayer(spawnPos) {
+  // Built-in sprites are 16×16 base @scale2 → 32px on screen.
+  // Custom sprites are 32×42 base (32px + 10px overflow for hair) @scale1 → same 32px on screen.
+  var isCustom  = selectedCharacter === "custom";
+  var charScale = isCustom ? 1 : 2;
+  // Hitbox on feet area, same world footprint for both:
+  //   built-in 16×16 @scale2: Rect(2,10,12,6) → 24×12 world
+  //   custom   32×42 @scale1: Rect(4,33,24,9) → 24×9 world
+  var hitbox = isCustom
+    ? new Rect(vec2(4, 33), 24, 9)
+    : new Rect(vec2(2, 10), 12, 6);
+
   var p = add([
     sprite(selectedCharacter + "_idle_anim"),
     pos(spawnPos),
-    scale(2),
-    area({ shape: new Rect(vec2(2, 10), 12, 6) }),
+    scale(charScale),
+    area({ shape: hitbox }),
     body({ gravityScale: 0 }),
     anchor("center"),
     z(7),
@@ -558,13 +719,18 @@ function makePlayer(spawnPos) {
 /**
  * Wires keyboard + touch/mouse controls to `player`.
  * If `followCamera` is true, camera tracks the player (used in gata scene).
+ * sceneName: the current scene key, used to track lastScene for save/resume.
  */
-function setupControls(player, followCamera) {
+function setupControls(player, followCamera, sceneName) {
   var touchActive = false;
   onMouseDown(function()    { touchActive = true;  });
   onMouseRelease(function() { touchActive = false; });
 
+  // Track which scene we're in
+  if (sceneName) lastScene = sceneName;
+
   onUpdate(function() {
+    if (gamePaused) return;
     var moved = false;
     var dx = 0, dy = 0;
 
@@ -623,6 +789,7 @@ function setupControls(player, followCamera) {
 
   // Treat pickup — proximity-based (treats have no body/area)
   player.onUpdate(function() {
+    if (gamePaused) return;
     var treats = get("treat");
     for (var i = 0; i < treats.length; i++) {
       var t = treats[i];
@@ -632,8 +799,105 @@ function setupControls(player, followCamera) {
         treatsCount++;
         questState.collectFish.current = treatsCount;
         try { play("lyd_pling"); } catch(e) {}
+        saveGame();
       }
     }
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// PAUSE MENU
+// ────────────────────────────────────────────────────────────
+
+/** Flips isMuted and adjusts global Kaplay volume accordingly. */
+function toggleMute() {
+  isMuted = !isMuted;
+  volume(isMuted ? 0 : 1);
+}
+
+/**
+ * Darkens the screen and shows Resume / Home buttons.
+ * Sets gamePaused=true so setupControls ignores input.
+ * Tagged "pause_overlay" — destroyed on resume.
+ */
+function pauseGame() {
+  if (gamePaused) return;
+  gamePaused = true;
+
+  // Dark overlay
+  add([
+    rect(width(), height()),
+    pos(0, 0),
+    color(0, 0, 0),
+    opacity(0.65),
+    fixed(),
+    z(200),
+    "pause_overlay",
+  ]);
+
+  add([
+    text("PAUSE", { size: 36, align: "center" }),
+    pos(400, 200),
+    anchor("center"),
+    color(255, 255, 255),
+    fixed(),
+    z(201),
+    "pause_overlay",
+  ]);
+
+  // FORTSETT (Resume) button
+  var fortsettBtn = add([
+    rect(260, 80, { radius: 12 }),
+    pos(400, 310),
+    anchor("center"),
+    color(60, 150, 80),
+    area(),
+    fixed(),
+    z(201),
+    "pause_overlay",
+  ]);
+  add([
+    text("FORTSETT", { size: 28 }),
+    pos(400, 310),
+    anchor("center"),
+    color(255, 255, 255),
+    fixed(),
+    z(202),
+    "pause_overlay",
+  ]);
+  fortsettBtn.onHover(function()    { fortsettBtn.color = rgb(80, 180, 100); });
+  fortsettBtn.onHoverEnd(function() { fortsettBtn.color = rgb(60, 150, 80);  });
+  fortsettBtn.onClick(function() {
+    get("pause_overlay").forEach(destroy);
+    gamePaused = false;
+  });
+
+  // HJEM (Home) button
+  var hjemBtn = add([
+    rect(260, 80, { radius: 12 }),
+    pos(400, 420),
+    anchor("center"),
+    color(160, 70, 60),
+    area(),
+    fixed(),
+    z(201),
+    "pause_overlay",
+  ]);
+  add([
+    text("HJEM", { size: 28 }),
+    pos(400, 420),
+    anchor("center"),
+    color(255, 255, 255),
+    fixed(),
+    z(202),
+    "pause_overlay",
+  ]);
+  hjemBtn.onHover(function()    { hjemBtn.color = rgb(190, 90, 80); });
+  hjemBtn.onHoverEnd(function() { hjemBtn.color = rgb(160, 70, 60); });
+  hjemBtn.onClick(function() {
+    gamePaused = false;
+    saveGame();
+    go("start");
   });
 }
 
@@ -776,4 +1040,51 @@ function setupGlobalUI() {
       invSlot.text = "";
     }
   });
+
+  // ── Menu Button + Sound Button (top-right) ───────────────
+  var menuBtn = add([
+    circle(22),
+    pos(width() - 90, 40),
+    anchor("center"),
+    color(50, 50, 70),
+    opacity(0.8),
+    area(),
+    fixed(),
+    z(100),
+  ]);
+  add([
+    text("||", { size: 15 }),
+    pos(width() - 90, 40),
+    anchor("center"),
+    color(220, 220, 255),
+    fixed(),
+    z(101),
+  ]);
+  menuBtn.onHover(function()    { menuBtn.opacity = 1.0; });
+  menuBtn.onHoverEnd(function() { menuBtn.opacity = 0.8; });
+  menuBtn.onClick(function() { pauseGame(); });
+
+  var soundBtn = add([
+    circle(22),
+    pos(width() - 40, 40),
+    anchor("center"),
+    color(50, 50, 70),
+    opacity(0.8),
+    area(),
+    fixed(),
+    z(100),
+  ]);
+  var soundIcon = add([
+    text("🔊", { size: 14 }),
+    pos(width() - 40, 40),
+    anchor("center"),
+    fixed(),
+    z(101),
+  ]);
+  soundIcon.onUpdate(function() {
+    soundIcon.text = isMuted ? "🔇" : "🔊";
+  });
+  soundBtn.onHover(function()    { soundBtn.opacity = 1.0; });
+  soundBtn.onHoverEnd(function() { soundBtn.opacity = 0.8; });
+  soundBtn.onClick(function() { toggleMute(); });
 }

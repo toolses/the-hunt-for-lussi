@@ -51,7 +51,9 @@ async function clickGameCoord(page, gx, gy) {
 
 /**
  * Start the game as a specific character by clicking the button.
- * Ylva button center: ~(290, 400), Vetle button center: ~(510, 400).
+ * Buttons are at center().add(offset, 100) = (400+offset, 400):
+ *   Ylva:  center().add(-215, 100) = (185, 400)
+ *   Vetle: center().add(0,   100) = (400, 400)
  */
 async function startGameAs(page, character) {
   await waitForGameReady(page);
@@ -59,9 +61,9 @@ async function startGameAs(page, character) {
   await page.waitForTimeout(500);
 
   if (character === "ylva") {
-    await clickGameCoord(page, 290, 400);
+    await clickGameCoord(page, 185, 400);
   } else {
-    await clickGameCoord(page, 510, 400);
+    await clickGameCoord(page, 400, 400);
   }
 
   // Wait for scene transition
@@ -107,6 +109,13 @@ async function getGameState(page) {
     inventory: [...inventory],
     questState: JSON.parse(JSON.stringify(questState)),
   }));
+}
+
+/**
+ * Read the current character layer selections.
+ */
+async function getCharacterLayers(page) {
+  return page.evaluate(() => ({ ...characterLayers }));
 }
 
 /**
@@ -250,6 +259,7 @@ module.exports = {
   getCurrentScene,
   waitForScene,
   getGameState,
+  getCharacterLayers,
   teleportPlayer,
   getPlayerPos,
   pressKeyFor,

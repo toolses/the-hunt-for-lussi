@@ -62,7 +62,7 @@ scene("gata", function(args) {
 
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
-  setupControls(player, true);
+  setupControls(player, true, "gata");
   setupGlobalUI();
 
   // Kameragrenser
@@ -100,6 +100,7 @@ scene("gata", function(args) {
     // Activate the Lussi chase quest
     questState.lussiChase.active = true;
     questState.lussiChase.status = "chasing";
+    saveGame();
 
     // ── Potespor fra inngangsdøren til gjemmestedet ─────────────
     var paws = [
@@ -191,6 +192,7 @@ scene("gata", function(args) {
           if (lussiEscapes >= LUSSI_ESCAPES_NEEDED) {
             lussiCatchable = true;
             questState.lussiChase.status = "catchable";
+            saveGame();
           }
           updateEscapeUI();
           return;
@@ -209,6 +211,7 @@ scene("gata", function(args) {
       if (lussiRunning || lussiCooldown) return;
       if (lussiCatchable) {
         questState.lussiChase.status = "done";
+        saveGame();
         go("vinn");
       }
       else lussiFleeFrom(player.pos);

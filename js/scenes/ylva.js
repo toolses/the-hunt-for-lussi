@@ -20,7 +20,7 @@ scene("etasje1_ylva", function(args) {
 
   // ── Player ───────────────────────────────────────────────────
   var player = makePlayer(spawnPos);
-  setupControls(player, false);
+  setupControls(player, false, "etasje1_ylva");
   setupGlobalUI();
 
   // ── Godbiter (treats) ────────────────────────────────────────
