@@ -64,6 +64,8 @@ scene("gata", function(args) {
   var player = makePlayer(spawnPos);
   setupControls(player, true, "gata");
   setupGlobalUI();
+  setupAtmosphere(player);
+  toggleRain(true);
 
   // Kameragrenser
   player.onUpdate(function() {

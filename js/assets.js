@@ -236,3 +236,8 @@ loadSound("vo_fant_skaal",        "assets/Voice/vo_fant_skaal.m4a");
 loadSound("vo_fyller_vann",       "assets/Voice/vo_fyller_vann.m4a");
 loadSound("vo_vann_ferdig",       "assets/Voice/vo_vann_ferdig.m4a");
 loadSound("vo_lussi_ikke_ute",    "assets/Voice/vo_lussi_ikke_ute.m4a");
+
+// ── Ambient audio placeholders ─────────────────────────────
+// Place the audio files in assets/Audio/ to enable them.
+loadSound("amb_rain",           "assets/Audio/amb_rain.mp3");
+loadSound("amb_night_crickets", "assets/Audio/amb_night_crickets.mp3");

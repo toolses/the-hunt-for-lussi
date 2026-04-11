@@ -22,6 +22,7 @@ scene("etasje1_vetle", function(args) {
   var player = makePlayer(spawnPos);
   setupControls(player, false, "etasje1_vetle");
   setupGlobalUI();
+  setupAtmosphere(player);
 
   // ── Godbiter (treats) ────────────────────────────────────────
   addTreat(4,  7,  "vetle");

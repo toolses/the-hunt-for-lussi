@@ -12,12 +12,16 @@
 // z(10) — 3D wall caps + arch overhangs (foreground, renders in front of player)
 // z(11) — Lussi "?" indicator
 // z(12) — furniture (above wall caps so it's never hidden)
+// z(50) — rain drops (above game world, below UI)
+// Note: night darkness overlay is an HTML <canvas> with CSS z-index 500,
+//       not a Kaplay layer.  It sits above the entire game canvas.
 
 // ────────────────────────────────────────────────────────────
 // FLOOR SHADOWS
 // ────────────────────────────────────────────────────────────
 
 var gamePaused = false;   // set by pauseGame() / resume
+var _rainSoundHandle = null;  // AudioPlay handle for looping rain ambient
 
 /**
  * Places semi-transparent shadow tiles along the top and left inner
@@ -1069,6 +1073,27 @@ function setupGlobalUI() {
     }
   });
 
+  // ── Time-of-day indicator (top-right, leftmost circle) ──
+  add([
+    circle(18),
+    pos(width() - 140, 40),
+    anchor("center"),
+    color(50, 50, 70),
+    opacity(0.8),
+    fixed(),
+    z(100),
+  ]);
+  var timeIcon = add([
+    text("", { size: 14 }),
+    pos(width() - 140, 40),
+    anchor("center"),
+    fixed(),
+    z(101),
+  ]);
+  timeIcon.onUpdate(function() {
+    timeIcon.text = isNight ? "🌙" : "☀️";
+  });
+
   // ── Menu Button + Sound Button (top-right) ───────────────
   var menuBtn = add([
     circle(22),
@@ -1115,4 +1140,168 @@ function setupGlobalUI() {
   soundBtn.onHover(function()    { soundBtn.opacity = 1.0; });
   soundBtn.onHoverEnd(function() { soundBtn.opacity = 0.8; });
   soundBtn.onClick(function() { toggleMute(); });
+}
+
+// ────────────────────────────────────────────────────────────
+// ATMOSPHERE — Night darkness + flashlight effect
+// ────────────────────────────────────────────────────────────
+
+/**
+ * If isNight is true, layers a dark HTML canvas over the game canvas and
+ * punches a soft circular "flashlight" hole that follows the player.
+ *
+ * The overlay is a separate <canvas> element (CSS z-index 500) drawn
+ * using the 2D context's destination-out composite operation, which
+ * genuinely removes pixels from the darkness so the live game canvas
+ * shows through — no Kaplay blend mode hacks needed.
+ *
+ * Flicker: the hole radius oscillates ±2 % at ~10 Hz via sin(time()*10)
+ * to simulate the unsteadiness of a real handheld flashlight.
+ *
+ * Cleanup: a sentinel game object's destroy() hook removes the HTML
+ * canvas element when the scene changes (all scene objects are destroyed
+ * by Kaplay's go() call).
+ *
+ * Call once per game scene, after makePlayer().  No-op during daytime.
+ */
+function setupAtmosphere(player) {
+  if (!isNight) return;
+
+  var gameCanvas = document.querySelector("canvas");
+
+  var overlay = document.createElement("canvas");
+  overlay.id = "night-overlay";
+  overlay.width = 800;
+  overlay.height = 600;
+  overlay.style.position = "fixed";
+  overlay.style.pointerEvents = "none";
+  overlay.style.zIndex = "500";
+  document.body.appendChild(overlay);
+
+  var octx = overlay.getContext("2d");
+
+  function _syncOverlayPos() {
+    var r = gameCanvas.getBoundingClientRect();
+    overlay.style.left   = r.left   + "px";
+    overlay.style.top    = r.top    + "px";
+    overlay.style.width  = r.width  + "px";
+    overlay.style.height = r.height + "px";
+  }
+  _syncOverlayPos();
+
+  onUpdate(function() {
+    if (gamePaused) return;
+    _syncOverlayPos();
+
+    // Player screen position in the 800×600 logical canvas space.
+    // camPos() returns the world point at the screen centre.
+    var cam = camPos();
+    var cx = player.pos.x - cam.x + 400;
+    var cy = player.pos.y - cam.y + 300;
+
+    // Subtle flicker: radius oscillates ±2 % at 10 Hz
+    var flicker = 1 + Math.sin(time() * 10) * 0.02;
+    var radius  = 130 * flicker;
+
+    octx.clearRect(0, 0, 800, 600);
+
+    // Deep darkness base
+    octx.fillStyle = "rgba(0, 0, 10, 0.90)";
+    octx.fillRect(0, 0, 800, 600);
+
+    // Punch flashlight hole: radial gradient erases the darkness
+    octx.globalCompositeOperation = "destination-out";
+    var grad = octx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0,    "rgba(0,0,0,1)");    // fully clear at centre
+    grad.addColorStop(0.55, "rgba(0,0,0,0.9)");  // still mostly clear
+    grad.addColorStop(0.80, "rgba(0,0,0,0.35)"); // soft feathered edge
+    grad.addColorStop(1,    "rgba(0,0,0,0)");    // fully dark at rim
+    octx.fillStyle = grad;
+    octx.fillRect(0, 0, 800, 600);
+
+    octx.globalCompositeOperation = "source-over";
+  });
+
+  // Sentinel: remove HTML canvas when this scene ends
+  add([
+    fixed(),
+    {
+      destroy: function() {
+        var el = document.getElementById("night-overlay");
+        if (el) el.remove();
+      }
+    },
+  ]);
+}
+
+// ────────────────────────────────────────────────────────────
+// WEATHER — Rain
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Toggles falling rain.
+ *
+ * enable=true  — Spawns 80 semi-transparent raindrop objects (rect 1×10)
+ *                falling diagonally at z(50), and starts the looping
+ *                amb_rain ambient sound.
+ * enable=false — Destroys all raindrop objects and stops the sound.
+ *
+ * Each raindrop resets to a random position above the screen when it
+ * falls past the bottom or right edge.
+ *
+ * At night, rain is naturally visible only inside the flashlight beam
+ * because the night overlay HTML canvas covers the rest of the game.
+ *
+ * Indoor muffled sound (near a window): future enhancement — call
+ * toggleRain(false) in indoor scenes for now, or adjust _rainSoundHandle
+ * volume to 0.08 and skip the visual spawn for an indoor-ambient feel.
+ */
+function toggleRain(enable) {
+  if (enable) {
+    // Clean up any leftover state (e.g. after a scene change without disable)
+    if (_rainSoundHandle) {
+      try { _rainSoundHandle.stop(); } catch (e) {}
+      _rainSoundHandle = null;
+    }
+    get("rain_drop").forEach(destroy);
+
+    // Spawn raindrop pool
+    for (var i = 0; i < 80; i++) {
+      add([
+        rect(1, 10),
+        pos(rand(0, width()), rand(0, height())),
+        color(150, 180, 220),
+        opacity(rand(0.25, 0.55)),
+        fixed(),
+        z(50),
+        "rain_drop",
+        {
+          speed: rand(280, 420),   // pixels/second downward
+          update: function() {
+            if (gamePaused) return;
+            this.pos.x += this.speed * 0.25 * dt();  // gentle diagonal
+            this.pos.y += this.speed       * dt();
+            if (this.pos.y > height() || this.pos.x > width()) {
+              this.pos.x = rand(-40, width() * 0.85);
+              this.pos.y = rand(-120, -10);
+            }
+          }
+        },
+      ]);
+    }
+
+    // Looping ambient rain sound
+    try {
+      _rainSoundHandle = play("amb_rain", { loop: true, volume: 0.3 });
+    } catch (e) {
+      // Sound file not yet added to assets/Audio/ — silently skip
+    }
+
+  } else {
+    get("rain_drop").forEach(destroy);
+    if (_rainSoundHandle) {
+      try { _rainSoundHandle.stop(); } catch (e) {}
+      _rainSoundHandle = null;
+    }
+  }
 }

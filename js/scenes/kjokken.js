@@ -40,6 +40,7 @@ scene("etasje2_kjokken", function(args) {
   var player = makePlayer(spawnPos);
   setupControls(player, false, "etasje2_kjokken");
   setupGlobalUI();
+  setupAtmosphere(player);
 
   // ── Interaction 1: Cupboard → find empty bowl ─────────────
   addInteraction(cupboardObj, function() {

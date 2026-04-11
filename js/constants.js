@@ -146,3 +146,17 @@ const SPAWNS = {
   // Gata
   "gata_default":                     vec2(195, 388),
 };
+
+// ── Atmosphere ────────────────────────────────────────────────
+// isNight is set once at startup by checkTimeOfDay() (called in main.js)
+// and stays constant for the session (no live clock polling).
+let isNight = false;
+
+/**
+ * Reads the device clock and sets isNight.
+ * Night = 19:00 – 06:59. Call once before go("start").
+ */
+function checkTimeOfDay() {
+  var h = new Date().getHours();
+  isNight = (h >= 19 || h < 7);
+}
