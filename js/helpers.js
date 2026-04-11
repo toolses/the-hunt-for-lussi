@@ -715,6 +715,8 @@ function makePlayer(spawnPos) {
   p.dirIndex   = 3;
   p.isMoving   = false;
   p.currentAnim = "";
+  p.speedMult  = playerOnBike ? 2.25 : 1.0;
+  p.onBike     = playerOnBike;
   p.play("idle_down");
   p.currentAnim = "idle_down";
   return p;
@@ -738,10 +740,11 @@ function setupControls(player, followCamera, sceneName) {
     var moved = false;
     var dx = 0, dy = 0;
 
-    if (isKeyDown("left")  || isKeyDown("a")) dx -= PLAYER_SPEED;
-    if (isKeyDown("right") || isKeyDown("d")) dx += PLAYER_SPEED;
-    if (isKeyDown("up")    || isKeyDown("w")) dy -= PLAYER_SPEED;
-    if (isKeyDown("down")  || isKeyDown("s")) dy += PLAYER_SPEED;
+    var spd = PLAYER_SPEED * player.speedMult;
+    if (isKeyDown("left")  || isKeyDown("a")) dx -= spd;
+    if (isKeyDown("right") || isKeyDown("d")) dx += spd;
+    if (isKeyDown("up")    || isKeyDown("w")) dy -= spd;
+    if (isKeyDown("down")  || isKeyDown("s")) dy += spd;
 
     if (dx !== 0 || dy !== 0) {
       player.move(dx, dy);
@@ -758,7 +761,7 @@ function setupControls(player, followCamera, sceneName) {
       var dist = worldMouse.dist(player.pos);
       if (dist > 8) {
         var dir = worldMouse.sub(player.pos).unit();
-        player.move(dir.scale(PLAYER_SPEED));
+        player.move(dir.scale(PLAYER_SPEED * player.speedMult));
         moved = true;
         if (Math.abs(dir.x) >= Math.abs(dir.y)) {
           player.dirIndex = dir.x > 0 ? 0 : 2;
@@ -1375,5 +1378,290 @@ function sceneFadeIn() {
     elapsed += dt();
     fadeRect.opacity = Math.max(0, 1 - elapsed / 0.35);
     if (elapsed >= 0.35) destroy(fadeRect);
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// BICYCLE
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Places a ridable bicycle at world position (x, y).
+ *
+ * Mount:   click the pulsing indicator near the parked bike.
+ * Dismount: click the pulsing indicator that follows the player.
+ *
+ * On mount:   player.speedMult → 2.25, playerOnBike → true.
+ * On dismount: player.speedMult → 1.0,  playerOnBike → false;
+ *              parked bike reappears at the player's current position.
+ *
+ * State persists across scene transitions via the global playerOnBike.
+ */
+function addBicycle(x, y, player) {
+  var isMounted = player.onBike;
+
+  // ── Parked bike visuals (z 6) ────────────────────────────
+  var bParts = [
+    add([rect(40, 12), pos(x,      y + 2), color(50, 110, 200), anchor("center"), z(6), "bike_part"]),
+    add([circle(9),    pos(x - 16, y + 8), color(30,  30,  30), anchor("center"), z(6), "bike_part"]),
+    add([circle(9),    pos(x + 16, y + 8), color(30,  30,  30), anchor("center"), z(6), "bike_part"]),
+    add([rect(4, 14),  pos(x + 15, y - 8), color(80,  80,  80), anchor("center"), z(6), "bike_part"]),
+  ];
+  if (isMounted) { bParts.forEach(function(b) { b.opacity = 0; }); }
+
+  // ── Riding visual (small bar under player when mounted) ──
+  var bikeRider = add([
+    rect(28, 10),
+    pos(player.pos),
+    color(50, 110, 200),
+    anchor("center"),
+    opacity(isMounted ? 0.85 : 0),
+    z(6),
+  ]);
+  bikeRider.onUpdate(function() {
+    bikeRider.pos     = vec2(player.pos.x, player.pos.y + 14);
+    bikeRider.opacity = player.onBike ? 0.85 : 0;
+  });
+
+  // ── Dismount indicator (follows player, shown when mounted) ─
+  var dismountInd = add([
+    circle(10),
+    pos(player.pos.x, player.pos.y - 26),
+    color(255, 200, 0),
+    anchor("center"),
+    opacity(0),
+    area(),
+    z(15),
+  ]);
+  dismountInd.onUpdate(function() {
+    dismountInd.pos = vec2(player.pos.x, player.pos.y - 26);
+    if (player.onBike) {
+      var s = 1 + Math.sin(time() * 3) * 0.15;
+      dismountInd.scale   = vec2(s);
+      dismountInd.opacity = 0.55 + Math.sin(time() * 5) * 0.45;
+    } else {
+      dismountInd.opacity = 0;
+    }
+  });
+  dismountInd.onClick(function() {
+    if (!player.onBike || dismountInd.opacity < 0.1) return;
+    isMounted        = false;
+    playerOnBike     = false;
+    player.onBike    = false;
+    player.speedMult = 1.0;
+    var ox = player.pos.x - x, oy = player.pos.y - y;
+    bParts.forEach(function(b) {
+      b.pos     = vec2(b.pos.x + ox, b.pos.y + oy);
+      b.opacity = 1;
+    });
+    try { play("lyd_sykkel_ring", { volume: 0.3 }); } catch(e) {}
+    say("bike_dismount");
+  });
+
+  // ── Mount interaction ─────────────────────────────────────
+  var mountInd = addInteraction(
+    bParts[0],
+    function() { return !isMounted; },
+    function() {
+      isMounted        = true;
+      playerOnBike     = true;
+      player.onBike    = true;
+      player.speedMult = 2.25;
+      bParts.forEach(function(b) { b.opacity = 0; });
+      try { play("lyd_sykkel_ring", { volume: 0.5 }); } catch(e) {}
+      say("bike_mount");
+    }
+  );
+  // Keep mount indicator aligned with the (possibly relocated) parked bike
+  mountInd.onUpdate(function() {
+    if (!isMounted) {
+      mountInd.pos = vec2(bParts[0].pos.x + 16, bParts[0].pos.y - 12);
+    }
+  });
+
+  // ── Coasting sound loop ───────────────────────────────────
+  var coastSnd    = null;
+  var coastActive = false;
+  add([fixed(), z(1), {
+    update: function() {
+      if (player.onBike && player.isMoving) {
+        if (!coastActive) {
+          try { coastSnd = play("lyd_sykkel_kost", { loop: true, volume: 0.25 }); } catch(e) {}
+          coastActive = true;
+        }
+      } else if (coastActive) {
+        if (coastSnd) { try { coastSnd.stop(); } catch(e) {} coastSnd = null; }
+        coastActive = false;
+      }
+    },
+    destroy: function() {
+      if (coastSnd) { try { coastSnd.stop(); } catch(e) {} }
+    },
+  }]);
+}
+
+// ────────────────────────────────────────────────────────────
+// SOCCER BALL
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a white soccer ball at (x, y).
+ * Kick speed: 380 on foot, 580 on bike. Friction decay: 0.95/frame.
+ * Tagged "soccer_ball". Returns the ball game object.
+ */
+function addSoccerBall(x, y, player) {
+  var bVel    = vec2(0, 0);
+  var bPushed = false;
+
+  var ball = add([
+    circle(12),
+    pos(x, y),
+    color(240, 240, 240),
+    area(),
+    body({ gravityScale: 0 }),
+    anchor("center"),
+    z(7),
+    "soccer_ball",
+  ]);
+  // Centre mark
+  add([circle(4), pos(x, y), color(30, 30, 30), anchor("center"), z(8), {
+    update: function() {
+      try { this.pos = vec2(ball.pos.x, ball.pos.y); } catch(e) {}
+    },
+  }]);
+
+  player.onCollide("soccer_ball", function() {
+    if (bPushed) return;
+    bPushed = true;
+    var dir = ball.pos.sub(player.pos);
+    if (dir.len() < 0.1) dir = vec2(1, 0);
+    bVel = dir.unit().scale(player.onBike ? 580 : 380);
+    try { play("lyd_spark"); } catch(e) {}
+    wait(0.2, function() { bPushed = false; });
+  });
+
+  ball.onCollide("wall", function() {
+    bVel = vec2(-bVel.x * 0.65, -bVel.y * 0.65);
+    try { play("lyd_bounce"); } catch(e) {}
+  });
+
+  ball.onUpdate(function() {
+    if (gamePaused || bVel.len() < 2) { bVel = vec2(0, 0); return; }
+    ball.move(bVel.x, bVel.y);
+    bVel = bVel.scale(0.95);
+  });
+
+  return ball;
+}
+
+// ────────────────────────────────────────────────────────────
+// TRASH CAN
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a knockable trash can at (x, y).
+ * Push speed: 280 from player, 380 from soccer ball. Decay: 0.88/frame.
+ * Tagged "trash_can". Returns the can game object.
+ */
+function addTrashCan(x, y) {
+  var tVel    = vec2(0, 0);
+  var tPushed = false;
+
+  var can = add([
+    rect(18, 26),
+    pos(x, y),
+    color(100, 100, 110),
+    anchor("center"),
+    area(),
+    z(7),
+    "trash_can",
+  ]);
+  // Lid follows can
+  add([rect(22, 5), pos(x, y - 16), color(80, 80, 90), anchor("center"), z(8), {
+    update: function() {
+      try { this.pos = vec2(can.pos.x, can.pos.y - 16); } catch(e) {}
+    },
+  }]);
+
+  can.onCollide("player", function() {
+    if (tPushed) return;
+    tPushed = true;
+    var p = get("player")[0];
+    if (!p) return;
+    var dir = can.pos.sub(p.pos);
+    if (dir.len() < 0.1) dir = vec2(1, 0);
+    tVel = dir.unit().scale(280);
+    can.color = rgb(150, 100, 55);
+    try { play("lyd_boks"); } catch(e) {}
+    wait(0.3, function() { tPushed = false; });
+  });
+
+  can.onCollide("soccer_ball", function() {
+    if (tPushed) return;
+    tPushed = true;
+    var balls = get("soccer_ball");
+    var dir = vec2(1, 0);
+    if (balls.length > 0) {
+      dir = can.pos.sub(balls[0].pos);
+      if (dir.len() < 0.1) dir = vec2(1, 0);
+    }
+    tVel = dir.unit().scale(380);
+    can.color = rgb(150, 100, 55);
+    try { play("lyd_boks"); } catch(e) {}
+    wait(0.3, function() { tPushed = false; });
+  });
+
+  can.onUpdate(function() {
+    if (gamePaused || tVel.len() < 2) { tVel = vec2(0, 0); return; }
+    can.move(tVel.x, tVel.y);
+    tVel = tVel.scale(0.88);
+  });
+
+  return can;
+}
+
+// ────────────────────────────────────────────────────────────
+// RAMP
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a decorative ramp at (x, y) — 60×40 px triangle slanting right.
+ * Triggers a squash/stretch jump visual on the player when walked over.
+ */
+function addRamp(x, y, player) {
+  // Triangle visual
+  try {
+    add([polygon([vec2(0, 40), vec2(60, 40), vec2(60, 0)]),
+         pos(x, y), color(155, 125, 85), z(5)]);
+  } catch(e) {
+    add([rect(60, 40), pos(x, y), color(155, 125, 85), anchor("topleft"), z(5), opacity(0.7)]);
+  }
+  // Base strip
+  add([rect(62, 4), pos(x - 1, y + 37), color(100, 75, 45), anchor("topleft"), z(6)]);
+
+  // Jump stretch effect
+  var jumping  = false;
+  var jumpT    = 0;
+  var jumpBase = 2;
+
+  player.onUpdate(function() {
+    if (jumping) {
+      jumpT += dt() * 5;
+      var h = Math.max(0, Math.sin(jumpT));
+      player.scale = vec2(jumpBase * (1 - h * 0.20), jumpBase * (1 + h * 0.55));
+      if (jumpT > Math.PI) {
+        jumping = false;
+        player.scale = vec2(jumpBase, jumpBase);
+      }
+      return;
+    }
+    var inZone = player.pos.x > x && player.pos.x < x + 60 &&
+                 player.pos.y > y && player.pos.y < y + 40;
+    if (inZone) {
+      jumping  = true;
+      jumpT    = 0;
+      jumpBase = player.scale.x;
+      try { play("lyd_hopp"); } catch(e) {}
+    }
   });
 }

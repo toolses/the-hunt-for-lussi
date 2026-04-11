@@ -84,40 +84,18 @@ scene("gata", function(args) {
     function() { pb1Done = true; say("postbox_1"); }
   );
 
-  // ── Lekeball ─────────────────────────────────────────────────
-  // Rød gummiball som ruller når spilleren dytter den.
-  var ballVel = vec2(0, 0);
-  var ballPushed = false;
-  var ball = add([
-    circle(11),
-    pos(600, 470),
-    color(220, 70, 70),
-    area(),
-    body({ gravityScale: 0 }),
-    anchor("center"),
-    z(7),
-    "toy_ball",
-  ]);
+  // ── Fotball ───────────────────────────────────────────────────
+  addSoccerBall(600, 470, player);
 
-  player.onCollide("toy_ball", function() {
-    if (ballPushed) return;
-    ballPushed = true;
-    var pushDir = ball.pos.sub(player.pos);
-    if (pushDir.len() < 0.1) pushDir = vec2(1, 0);
-    ballVel = pushDir.unit().scale(320);
-    wait(0.25, function() { ballPushed = false; });
-  });
+  // ── Sykkel (i oppkjørselen mellom hus 1 og 2) ────────────────
+  addBicycle(360, 400, player);
 
-  ball.onCollide("wall", function() {
-    ballVel = vec2(-ballVel.x * 0.55, -ballVel.y * 0.55);
-    try { play("lyd_bounce"); } catch (e) {}
-  });
+  // ── Søppeldunker langs fortauet ───────────────────────────────
+  addTrashCan(540, 475);
+  addTrashCan(830, 465);
 
-  ball.onUpdate(function() {
-    if (gamePaused || ballVel.len() < 2) { ballVel = vec2(0, 0); return; }
-    ball.move(ballVel.x, ballVel.y);
-    ballVel = ballVel.scale(0.91);
-  });
+  // ── Rampe (mellom hus 2 og 3) ─────────────────────────────────
+  addRamp(740, 420, player);
 
   // ── Overgang til nabolaget (høyre kant) ──────────────────────
   addTransitionZone(player, 1168, 340, 32, 420, "nabolag_venn", vec2(80, 430));

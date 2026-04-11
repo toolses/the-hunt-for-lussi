@@ -155,6 +155,7 @@ const SPAWNS = {
 // isNight is set once at startup by checkTimeOfDay() (called in main.js)
 // and stays constant for the session (no live clock polling).
 let isNight = false;
+let playerOnBike = false;   // persists across scene transitions
 
 /**
  * Reads the device clock and sets isNight.

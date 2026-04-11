@@ -34,6 +34,32 @@ var DIALOGUE = {
     vo:   "vo_venn_hilsen",
     duration: 4,
   },
+
+  // Nabolaget — Emma ball challenge
+  emma_challenge: {
+    text: "Klarer du å dytte fotballen inn i naboens hage? Prøv! ⚽",
+    vo:   null,
+    duration: 4,
+  },
+
+  // Nabolaget — goal scored
+  goal_scored: {
+    text: "MÅL! Kjempebra! Du er en fotballstjerne! ⚽🎉",
+    vo:   null,
+    duration: 3,
+  },
+
+  // Bicycle — mount / dismount
+  bike_mount: {
+    text: "Du hopper på sykkelen! Nå er du kjemperask! 🚲",
+    vo:   null,
+    duration: 2,
+  },
+  bike_dismount: {
+    text: "Du hopper av sykkelen.",
+    vo:   null,
+    duration: 2,
+  },
 };
 
 // Safe VO playback — logs a placeholder when the audio file is missing.

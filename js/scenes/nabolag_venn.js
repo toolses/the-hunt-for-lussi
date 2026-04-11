@@ -127,44 +127,51 @@ scene("nabolag_venn", function(args) {
     function() { return !npcInteracted; },
     function() {
       npcInteracted = true;
-      say("venn_hilsen");
+      say("emma_challenge");
       // Indikator vises igjen etter dialogens varighet
       wait(5, function() { npcInteracted = false; });
     }
   );
 
-  // ── Lekeball (rød gummiball i åpen gate) ─────────────────────
-  var ballVel = vec2(0, 0);
-  var ballPushed = false;
-  var ball = add([
-    circle(11),
-    pos(270, 468),
-    color(220, 70, 70),
-    area(),
-    body({ gravityScale: 0 }),
-    anchor("center"),
-    z(7),
-    "toy_ball",
-  ]);
+  // ── Fotball (spark inn i naboens hage!) ──────────────────────
+  addSoccerBall(270, 468, player);
 
-  player.onCollide("toy_ball", function() {
-    if (ballPushed) return;
-    ballPushed = true;
-    var pushDir = ball.pos.sub(player.pos);
-    if (pushDir.len() < 0.1) pushDir = vec2(1, 0);
-    ballVel = pushDir.unit().scale(320);
-    wait(0.25, function() { ballPushed = false; });
-  });
+  // ── Sykkel (i oppkjørselen ved hus 1) ────────────────────────
+  addBicycle(190, 380, player);
 
-  ball.onCollide("wall", function() {
-    ballVel = vec2(-ballVel.x * 0.55, -ballVel.y * 0.55);
-    try { play("lyd_bounce"); } catch (e) {}
-  });
+  // ── Søppeldunker langs fortauet ───────────────────────────────
+  addTrashCan(550, 480);
+  addTrashCan(840, 470);
 
-  ball.onUpdate(function() {
-    if (gamePaused || ballVel.len() < 2) { ballVel = vec2(0, 0); return; }
-    ball.move(ballVel.x, ballVel.y);
-    ballVel = ballVel.scale(0.91);
+  // ── Rampe (mellom de to husene) ───────────────────────────────
+  addRamp(400, 430, player);
+
+  // ── Mål: dunk fotballen inn i naboens hage ───────────────────
+  // Målstolper ved hus 2 sin dørgang (gap x=810–880, y=348)
+  add([rect(4, 22), pos(810, 326), color(255, 230, 50), anchor("topleft"), z(9)]);
+  add([rect(4, 22), pos(876, 326), color(255, 230, 50), anchor("topleft"), z(9)]);
+  add([rect(70, 4), pos(810, 326), color(255, 230, 50), anchor("topleft"), z(9)]);
+
+  var goalScored = false;
+  onUpdate(function() {
+    if (goalScored) return;
+    var balls = get("soccer_ball");
+    for (var i = 0; i < balls.length; i++) {
+      var b = balls[i];
+      if (b.pos.x > 812 && b.pos.x < 876 && b.pos.y > 330 && b.pos.y < 352) {
+        goalScored = true;
+        say("goal_scored");
+        try { play("lyd_jubel"); } catch(e) {}
+        var flash = add([rect(width(), height()), pos(0, 0), color(255, 255, 100),
+                         opacity(0.5), fixed(), z(900)]);
+        var _ft = 0;
+        flash.onUpdate(function() {
+          _ft += dt();
+          flash.opacity = Math.max(0, 0.5 - _ft * 1.5);
+          if (_ft > 0.8) destroy(flash);
+        });
+      }
+    }
   });
 
   // ── Lussi gjemmer seg bak busken til høyre ───────────────────
