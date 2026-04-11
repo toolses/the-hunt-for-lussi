@@ -4,7 +4,8 @@
 
 scene("gata", function(args) {
   args = args || {};
-  var spawnPos = SPAWNS["gata_default"];
+  // Support startPos from addTransitionZone (neighbour street → gata)
+  var spawnPos = (args.startPos) ? args.startPos : SPAWNS["gata_default"];
 
   // ── Bakgrunn ─────────────────────────────────────────────────
   makeDeco(-25,   0, 1225, 800, [75, 145, 65]);
@@ -64,6 +65,40 @@ scene("gata", function(args) {
   var player = makePlayer(spawnPos);
   setupControls(player, true, "gata");
   setupGlobalUI();
+  setupAtmosphere(player);
+  toggleRain(true);
+
+  // Fade in when arriving via transition zone (from nabolag_venn)
+  if (args.startPos) sceneFadeIn();
+
+  // Ambient birds (quiet, under rain if raining)
+  try { play("amb_birds", { loop: true, volume: 0.12 }); } catch (e) {}
+
+  // ── Postboks (ved inngangsparti hus 1) ───────────────────────
+  add([rect(14, 20), pos(140, 354), color(140, 30, 30), anchor("topleft"), z(9)]);
+  add([rect(3, 28),  pos(148, 348), color(90, 90, 90),  anchor("topleft"), z(8)]);
+  var pb1Done = false;
+  addInteraction(
+    { pos: vec2(147, 364) },
+    function() { return !pb1Done; },
+    function() { pb1Done = true; say("postbox_1"); }
+  );
+
+  // ── Fotball ───────────────────────────────────────────────────
+  addSoccerBall(600, 470, player);
+
+  // ── Sykkel (i oppkjørselen mellom hus 1 og 2) ────────────────
+  addBicycle(360, 400, player);
+
+  // ── Søppeldunker langs fortauet ───────────────────────────────
+  addTrashCan(540, 475);
+  addTrashCan(830, 465);
+
+  // ── Rampe (mellom hus 2 og 3) ─────────────────────────────────
+  addRamp(740, 420, player);
+
+  // ── Overgang til nabolaget (høyre kant) ──────────────────────
+  addTransitionZone(player, 1168, 340, 32, 420, "nabolag_venn", vec2(80, 430));
 
   // Kameragrenser
   player.onUpdate(function() {

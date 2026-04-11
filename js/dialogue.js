@@ -23,6 +23,43 @@ var DIALOGUE = {
   // Room entry voice-overs (no on-screen text)
   enter_vetle:        { text: null, vo: null },
   enter_ylva:         { text: null, vo: null },
+
+  // Nabolaget — postboxes
+  postbox_1: { text: "Du fant en tegning av Lussi! 🎨 Noen savner den nok!", vo: null, duration: 3 },
+  postbox_2: { text: "Her bor Maya! Kanskje hun vet noe om Lussi? 🏠",       vo: null, duration: 3 },
+
+  // Nabolaget — NPC friend greeting
+  venn_hilsen: {
+    text: "Hei! Skal vi leke? Jeg tror Lussi løp den veien! 🐈",
+    vo:   "vo_venn_hilsen",
+    duration: 4,
+  },
+
+  // Nabolaget — Maya ball challenge
+  emma_challenge: {
+    text: "Klarer du å dytte fotballen inn i naboens hage? Prøv! ⚽",
+    vo:   null,
+    duration: 4,
+  },
+
+  // Nabolaget — goal scored
+  goal_scored: {
+    text: "MÅL! Kjempebra! Du er en fotballstjerne! ⚽🎉",
+    vo:   null,
+    duration: 3,
+  },
+
+  // Bicycle — mount / dismount
+  bike_mount: {
+    text: "Du hopper på sykkelen! Nå er du kjemperask! 🚲",
+    vo:   null,
+    duration: 2,
+  },
+  bike_dismount: {
+    text: "Du hopper av sykkelen.",
+    vo:   null,
+    duration: 2,
+  },
 };
 
 // Safe VO playback — logs a placeholder when the audio file is missing.

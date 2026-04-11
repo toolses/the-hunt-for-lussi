@@ -12,12 +12,16 @@
 // z(10) — 3D wall caps + arch overhangs (foreground, renders in front of player)
 // z(11) — Lussi "?" indicator
 // z(12) — furniture (above wall caps so it's never hidden)
+// z(50) — rain drops (above game world, below UI)
+// Note: night darkness overlay is an HTML <canvas> with CSS z-index 500,
+//       not a Kaplay layer.  It sits above the entire game canvas.
 
 // ────────────────────────────────────────────────────────────
 // FLOOR SHADOWS
 // ────────────────────────────────────────────────────────────
 
 var gamePaused = false;   // set by pauseGame() / resume
+var _rainSoundHandle = null;  // AudioPlay handle for looping rain ambient
 
 /**
  * Places semi-transparent shadow tiles along the top and left inner
@@ -711,6 +715,8 @@ function makePlayer(spawnPos) {
   p.dirIndex   = 3;
   p.isMoving   = false;
   p.currentAnim = "";
+  p.speedMult  = playerOnBike ? 2.25 : 1.0;
+  p.onBike     = playerOnBike;
   p.play("idle_down");
   p.currentAnim = "idle_down";
   return p;
@@ -734,10 +740,11 @@ function setupControls(player, followCamera, sceneName) {
     var moved = false;
     var dx = 0, dy = 0;
 
-    if (isKeyDown("left")  || isKeyDown("a")) dx -= PLAYER_SPEED;
-    if (isKeyDown("right") || isKeyDown("d")) dx += PLAYER_SPEED;
-    if (isKeyDown("up")    || isKeyDown("w")) dy -= PLAYER_SPEED;
-    if (isKeyDown("down")  || isKeyDown("s")) dy += PLAYER_SPEED;
+    var spd = PLAYER_SPEED * player.speedMult;
+    if (isKeyDown("left")  || isKeyDown("a")) dx -= spd;
+    if (isKeyDown("right") || isKeyDown("d")) dx += spd;
+    if (isKeyDown("up")    || isKeyDown("w")) dy -= spd;
+    if (isKeyDown("down")  || isKeyDown("s")) dy += spd;
 
     if (dx !== 0 || dy !== 0) {
       player.move(dx, dy);
@@ -754,7 +761,7 @@ function setupControls(player, followCamera, sceneName) {
       var dist = worldMouse.dist(player.pos);
       if (dist > 8) {
         var dir = worldMouse.sub(player.pos).unit();
-        player.move(dir.scale(PLAYER_SPEED));
+        player.move(dir.scale(PLAYER_SPEED * player.speedMult));
         moved = true;
         if (Math.abs(dir.x) >= Math.abs(dir.y)) {
           player.dirIndex = dir.x > 0 ? 0 : 2;
@@ -837,7 +844,7 @@ function pauseGame() {
 
   add([
     text("PAUSE", { size: 36, align: "center" }),
-    pos(400, 200),
+    pos(400, 170),
     anchor("center"),
     color(255, 255, 255),
     fixed(),
@@ -847,8 +854,8 @@ function pauseGame() {
 
   // FORTSETT (Resume) button
   var fortsettBtn = add([
-    rect(260, 80, { radius: 12 }),
-    pos(400, 310),
+    rect(260, 72, { radius: 12 }),
+    pos(400, 270),
     anchor("center"),
     color(60, 150, 80),
     area(),
@@ -857,8 +864,8 @@ function pauseGame() {
     "pause_overlay",
   ]);
   add([
-    text("FORTSETT", { size: 28 }),
-    pos(400, 310),
+    text("FORTSETT", { size: 26 }),
+    pos(400, 270),
     anchor("center"),
     color(255, 255, 255),
     fixed(),
@@ -874,8 +881,8 @@ function pauseGame() {
 
   // HJEM (Home) button
   var hjemBtn = add([
-    rect(260, 80, { radius: 12 }),
-    pos(400, 420),
+    rect(260, 72, { radius: 12 }),
+    pos(400, 365),
     anchor("center"),
     color(160, 70, 60),
     area(),
@@ -884,8 +891,8 @@ function pauseGame() {
     "pause_overlay",
   ]);
   add([
-    text("HJEM", { size: 28 }),
-    pos(400, 420),
+    text("HJEM", { size: 26 }),
+    pos(400, 365),
     anchor("center"),
     color(255, 255, 255),
     fixed(),
@@ -898,6 +905,34 @@ function pauseGame() {
     gamePaused = false;
     saveGame();
     go("start");
+  });
+
+  // TILLAT VARSLINGER (Notifications) button
+  var notifBtn = add([
+    rect(260, 72, { radius: 12 }),
+    pos(400, 460),
+    anchor("center"),
+    color(60, 100, 160),
+    area(),
+    fixed(),
+    z(201),
+    "pause_overlay",
+  ]);
+  add([
+    text("🔔 Tillat Varslinger", { size: 20 }),
+    pos(400, 460),
+    anchor("center"),
+    color(255, 255, 255),
+    fixed(),
+    z(202),
+    "pause_overlay",
+  ]);
+  notifBtn.onHover(function()    { notifBtn.color = rgb(80, 130, 200); });
+  notifBtn.onHoverEnd(function() { notifBtn.color = rgb(60, 100, 160); });
+  notifBtn.onClick(function() {
+    get("pause_overlay").forEach(destroy);
+    gamePaused = false;
+    requestNotificationPermission();
   });
 }
 
@@ -1041,6 +1076,27 @@ function setupGlobalUI() {
     }
   });
 
+  // ── Time-of-day indicator (top-right, leftmost circle) ──
+  add([
+    circle(18),
+    pos(width() - 140, 40),
+    anchor("center"),
+    color(50, 50, 70),
+    opacity(0.8),
+    fixed(),
+    z(100),
+  ]);
+  var timeIcon = add([
+    text("", { size: 14 }),
+    pos(width() - 140, 40),
+    anchor("center"),
+    fixed(),
+    z(101),
+  ]);
+  timeIcon.onUpdate(function() {
+    timeIcon.text = isNight ? "🌙" : "☀️";
+  });
+
   // ── Menu Button + Sound Button (top-right) ───────────────
   var menuBtn = add([
     circle(22),
@@ -1087,4 +1143,525 @@ function setupGlobalUI() {
   soundBtn.onHover(function()    { soundBtn.opacity = 1.0; });
   soundBtn.onHoverEnd(function() { soundBtn.opacity = 0.8; });
   soundBtn.onClick(function() { toggleMute(); });
+}
+
+// ────────────────────────────────────────────────────────────
+// ATMOSPHERE — Night darkness + flashlight effect
+// ────────────────────────────────────────────────────────────
+
+/**
+ * If isNight is true, layers a dark HTML canvas over the game canvas and
+ * punches a soft circular "flashlight" hole that follows the player.
+ *
+ * The overlay is a separate <canvas> element (CSS z-index 500) drawn
+ * using the 2D context's destination-out composite operation, which
+ * genuinely removes pixels from the darkness so the live game canvas
+ * shows through — no Kaplay blend mode hacks needed.
+ *
+ * Flicker: the hole radius oscillates ±2 % at ~10 Hz via sin(time()*10)
+ * to simulate the unsteadiness of a real handheld flashlight.
+ *
+ * Cleanup: a sentinel game object's destroy() hook removes the HTML
+ * canvas element when the scene changes (all scene objects are destroyed
+ * by Kaplay's go() call).
+ *
+ * Call once per game scene, after makePlayer().  No-op during daytime.
+ */
+function setupAtmosphere(player) {
+  if (!isNight) return;
+
+  var gameCanvas = document.querySelector("canvas");
+
+  var overlay = document.createElement("canvas");
+  overlay.id = "night-overlay";
+  overlay.width = 800;
+  overlay.height = 600;
+  overlay.style.position = "fixed";
+  overlay.style.pointerEvents = "none";
+  overlay.style.zIndex = "500";
+  document.body.appendChild(overlay);
+
+  var octx = overlay.getContext("2d");
+
+  function _syncOverlayPos() {
+    var r = gameCanvas.getBoundingClientRect();
+    overlay.style.left   = r.left   + "px";
+    overlay.style.top    = r.top    + "px";
+    overlay.style.width  = r.width  + "px";
+    overlay.style.height = r.height + "px";
+  }
+  _syncOverlayPos();
+
+  onUpdate(function() {
+    if (gamePaused) return;
+    _syncOverlayPos();
+
+    // Player screen position in the 800×600 logical canvas space.
+    // camPos() returns the world point at the screen centre.
+    var cam = camPos();
+    var cx = player.pos.x - cam.x + 400;
+    var cy = player.pos.y - cam.y + 300;
+
+    // Subtle flicker: radius oscillates ±2 % at 10 Hz
+    var flicker = 1 + Math.sin(time() * 10) * 0.02;
+    var radius  = 130 * flicker;
+
+    octx.clearRect(0, 0, 800, 600);
+
+    // Deep darkness base
+    octx.fillStyle = "rgba(0, 0, 10, 0.90)";
+    octx.fillRect(0, 0, 800, 600);
+
+    // Punch flashlight hole: radial gradient erases the darkness
+    octx.globalCompositeOperation = "destination-out";
+    var grad = octx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0,    "rgba(0,0,0,1)");    // fully clear at centre
+    grad.addColorStop(0.55, "rgba(0,0,0,0.9)");  // still mostly clear
+    grad.addColorStop(0.80, "rgba(0,0,0,0.35)"); // soft feathered edge
+    grad.addColorStop(1,    "rgba(0,0,0,0)");    // fully dark at rim
+    octx.fillStyle = grad;
+    octx.fillRect(0, 0, 800, 600);
+
+    octx.globalCompositeOperation = "source-over";
+  });
+
+  // Sentinel: remove HTML canvas when this scene ends
+  add([
+    fixed(),
+    {
+      destroy: function() {
+        var el = document.getElementById("night-overlay");
+        if (el) el.remove();
+      }
+    },
+  ]);
+}
+
+// ────────────────────────────────────────────────────────────
+// WEATHER — Rain
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Toggles falling rain.
+ *
+ * enable=true  — Spawns 80 semi-transparent raindrop objects (rect 1×10)
+ *                falling diagonally at z(50), and starts the looping
+ *                amb_rain ambient sound.
+ * enable=false — Destroys all raindrop objects and stops the sound.
+ *
+ * Each raindrop resets to a random position above the screen when it
+ * falls past the bottom or right edge.
+ *
+ * At night, rain is naturally visible only inside the flashlight beam
+ * because the night overlay HTML canvas covers the rest of the game.
+ *
+ * Indoor muffled sound (near a window): future enhancement — call
+ * toggleRain(false) in indoor scenes for now, or adjust _rainSoundHandle
+ * volume to 0.08 and skip the visual spawn for an indoor-ambient feel.
+ */
+function toggleRain(enable) {
+  if (enable) {
+    // Clean up any leftover state (e.g. after a scene change without disable)
+    if (_rainSoundHandle) {
+      try { _rainSoundHandle.stop(); } catch (e) {}
+      _rainSoundHandle = null;
+    }
+    get("rain_drop").forEach(destroy);
+
+    // Spawn raindrop pool
+    for (var i = 0; i < 80; i++) {
+      add([
+        rect(1, 10),
+        pos(rand(0, width()), rand(0, height())),
+        color(150, 180, 220),
+        opacity(rand(0.25, 0.55)),
+        fixed(),
+        z(50),
+        "rain_drop",
+        {
+          speed: rand(280, 420),   // pixels/second downward
+          update: function() {
+            if (gamePaused) return;
+            this.pos.x += this.speed * 0.25 * dt();  // gentle diagonal
+            this.pos.y += this.speed       * dt();
+            if (this.pos.y > height() || this.pos.x > width()) {
+              this.pos.x = rand(-40, width() * 0.85);
+              this.pos.y = rand(-120, -10);
+            }
+          }
+        },
+      ]);
+    }
+
+    // Looping ambient rain sound
+    try {
+      _rainSoundHandle = play("amb_rain", { loop: true, volume: 0.3 });
+    } catch (e) {
+      // Sound file not yet added to assets/Audio/ — silently skip
+    }
+
+  } else {
+    get("rain_drop").forEach(destroy);
+    if (_rainSoundHandle) {
+      try { _rainSoundHandle.stop(); } catch (e) {}
+      _rainSoundHandle = null;
+    }
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// SCENE TRANSITIONS — fade-to-black zone + fade-in
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Places an invisible collision zone (in world space) that, when the player
+ * enters it, saves progress, fades the screen to black, then jumps to
+ * `targetScene` with `{ startPos: targetPos }` so the new scene can spawn
+ * the player at the correct entrance position.
+ *
+ * Follows the same first-arg convention as onDoor(player, …).
+ */
+function addTransitionZone(player, x, y, w, h, targetScene, targetPos) {
+  var tag = "tz_" + targetScene;
+  add([
+    rect(w, h),
+    pos(x, y),
+    anchor("topleft"),
+    opacity(0),
+    area(),
+    z(1),
+    tag,
+  ]);
+
+  var transitioning = false;
+  player.onCollide(tag, function() {
+    if (transitioning || gamePaused) return;
+    transitioning = true;
+    gamePaused = true;
+    saveGame();
+
+    var fadeRect = add([
+      rect(width(), height()),
+      pos(0, 0),
+      color(0, 0, 0),
+      opacity(0),
+      fixed(),
+      z(999),
+    ]);
+    var elapsed = 0;
+    fadeRect.onUpdate(function() {
+      elapsed += dt();
+      fadeRect.opacity = Math.min(1, elapsed / 0.35);
+      if (elapsed >= 0.35) {
+        gamePaused = false;
+        go(targetScene, { startPos: targetPos });
+      }
+    });
+  });
+}
+
+/**
+ * Fades the screen from black to transparent at the start of a scene.
+ * Call right after makePlayer() whenever arriving via addTransitionZone.
+ */
+function sceneFadeIn() {
+  var fadeRect = add([
+    rect(width(), height()),
+    pos(0, 0),
+    color(0, 0, 0),
+    opacity(1),
+    fixed(),
+    z(999),
+  ]);
+  var elapsed = 0;
+  fadeRect.onUpdate(function() {
+    elapsed += dt();
+    fadeRect.opacity = Math.max(0, 1 - elapsed / 0.35);
+    if (elapsed >= 0.35) destroy(fadeRect);
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// BICYCLE
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Places a ridable bicycle at world position (x, y).
+ *
+ * Mount:   click the pulsing indicator near the parked bike.
+ * Dismount: click the pulsing indicator that follows the player.
+ *
+ * On mount:   player.speedMult → 2.25, playerOnBike → true.
+ * On dismount: player.speedMult → 1.0,  playerOnBike → false;
+ *              parked bike reappears at the player's current position.
+ *
+ * State persists across scene transitions via the global playerOnBike.
+ */
+function addBicycle(x, y, player) {
+  var isMounted = player.onBike;
+
+  // ── Parked bike visuals (z 6) ────────────────────────────
+  var bParts = [
+    add([rect(40, 12), pos(x,      y + 2), color(50, 110, 200), anchor("center"), z(6), "bike_part"]),
+    add([circle(9),    pos(x - 16, y + 8), color(30,  30,  30), anchor("center"), z(6), "bike_part"]),
+    add([circle(9),    pos(x + 16, y + 8), color(30,  30,  30), anchor("center"), z(6), "bike_part"]),
+    add([rect(4, 14),  pos(x + 15, y - 8), color(80,  80,  80), anchor("center"), z(6), "bike_part"]),
+  ];
+  if (isMounted) { bParts.forEach(function(b) { b.opacity = 0; }); }
+
+  // ── Riding visual (small bar under player when mounted) ──
+  var bikeRider = add([
+    rect(28, 10),
+    pos(player.pos),
+    color(50, 110, 200),
+    anchor("center"),
+    opacity(isMounted ? 0.85 : 0),
+    z(6),
+  ]);
+  bikeRider.onUpdate(function() {
+    bikeRider.pos     = vec2(player.pos.x, player.pos.y + 14);
+    bikeRider.opacity = player.onBike ? 0.85 : 0;
+  });
+
+  // ── Dismount indicator (follows player, shown when mounted) ─
+  var dismountInd = add([
+    circle(10),
+    pos(player.pos.x, player.pos.y - 26),
+    color(255, 200, 0),
+    anchor("center"),
+    opacity(0),
+    area(),
+    z(15),
+  ]);
+  dismountInd.onUpdate(function() {
+    dismountInd.pos = vec2(player.pos.x, player.pos.y - 26);
+    if (player.onBike) {
+      var s = 1 + Math.sin(time() * 3) * 0.15;
+      dismountInd.scale   = vec2(s);
+      dismountInd.opacity = 0.55 + Math.sin(time() * 5) * 0.45;
+    } else {
+      dismountInd.opacity = 0;
+    }
+  });
+  dismountInd.onClick(function() {
+    if (!player.onBike || dismountInd.opacity < 0.1) return;
+    isMounted        = false;
+    playerOnBike     = false;
+    player.onBike    = false;
+    player.speedMult = 1.0;
+    var ox = player.pos.x - x, oy = player.pos.y - y;
+    bParts.forEach(function(b) {
+      b.pos     = vec2(b.pos.x + ox, b.pos.y + oy);
+      b.opacity = 1;
+    });
+    try { play("lyd_sykkel_ring", { volume: 0.3 }); } catch(e) {}
+    say("bike_dismount");
+  });
+
+  // ── Mount interaction ─────────────────────────────────────
+  var mountInd = addInteraction(
+    bParts[0],
+    function() { return !isMounted; },
+    function() {
+      isMounted        = true;
+      playerOnBike     = true;
+      player.onBike    = true;
+      player.speedMult = 2.25;
+      bParts.forEach(function(b) { b.opacity = 0; });
+      try { play("lyd_sykkel_ring", { volume: 0.5 }); } catch(e) {}
+      say("bike_mount");
+    }
+  );
+  // Keep mount indicator aligned with the (possibly relocated) parked bike
+  mountInd.onUpdate(function() {
+    if (!isMounted) {
+      mountInd.pos = vec2(bParts[0].pos.x + 16, bParts[0].pos.y - 12);
+    }
+  });
+
+  // ── Coasting sound loop ───────────────────────────────────
+  var coastSnd    = null;
+  var coastActive = false;
+  add([fixed(), z(1), {
+    update: function() {
+      if (player.onBike && player.isMoving) {
+        if (!coastActive) {
+          try { coastSnd = play("lyd_sykkel_kost", { loop: true, volume: 0.25 }); } catch(e) {}
+          coastActive = true;
+        }
+      } else if (coastActive) {
+        if (coastSnd) { try { coastSnd.stop(); } catch(e) {} coastSnd = null; }
+        coastActive = false;
+      }
+    },
+    destroy: function() {
+      if (coastSnd) { try { coastSnd.stop(); } catch(e) {} }
+    },
+  }]);
+}
+
+// ────────────────────────────────────────────────────────────
+// SOCCER BALL
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a white soccer ball at (x, y).
+ * Kick speed: 380 on foot, 580 on bike. Friction decay: 0.95/frame.
+ * Tagged "soccer_ball". Returns the ball game object.
+ */
+function addSoccerBall(x, y, player) {
+  var bVel    = vec2(0, 0);
+  var bPushed = false;
+
+  var ball = add([
+    circle(12),
+    pos(x, y),
+    color(240, 240, 240),
+    area(),
+    body({ gravityScale: 0 }),
+    anchor("center"),
+    z(7),
+    "soccer_ball",
+  ]);
+  // Centre mark
+  add([circle(4), pos(x, y), color(30, 30, 30), anchor("center"), z(8), {
+    update: function() {
+      try { this.pos = vec2(ball.pos.x, ball.pos.y); } catch(e) {}
+    },
+  }]);
+
+  player.onCollide("soccer_ball", function() {
+    if (bPushed) return;
+    bPushed = true;
+    var dir = ball.pos.sub(player.pos);
+    if (dir.len() < 0.1) dir = vec2(1, 0);
+    bVel = dir.unit().scale(player.onBike ? 580 : 380);
+    try { play("lyd_spark"); } catch(e) {}
+    wait(0.2, function() { bPushed = false; });
+  });
+
+  ball.onCollide("wall", function() {
+    bVel = vec2(-bVel.x * 0.65, -bVel.y * 0.65);
+    try { play("lyd_bounce"); } catch(e) {}
+  });
+
+  ball.onUpdate(function() {
+    if (gamePaused || bVel.len() < 2) { bVel = vec2(0, 0); return; }
+    ball.move(bVel.x, bVel.y);
+    bVel = bVel.scale(0.95);
+  });
+
+  return ball;
+}
+
+// ────────────────────────────────────────────────────────────
+// TRASH CAN
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a knockable trash can at (x, y).
+ * Push speed: 280 from player, 380 from soccer ball. Decay: 0.88/frame.
+ * Tagged "trash_can". Returns the can game object.
+ */
+function addTrashCan(x, y) {
+  var tVel    = vec2(0, 0);
+  var tPushed = false;
+
+  var can = add([
+    rect(18, 26),
+    pos(x, y),
+    color(100, 100, 110),
+    anchor("center"),
+    area(),
+    z(7),
+    "trash_can",
+  ]);
+  // Lid follows can
+  add([rect(22, 5), pos(x, y - 16), color(80, 80, 90), anchor("center"), z(8), {
+    update: function() {
+      try { this.pos = vec2(can.pos.x, can.pos.y - 16); } catch(e) {}
+    },
+  }]);
+
+  can.onCollide("player", function() {
+    if (tPushed) return;
+    tPushed = true;
+    var p = get("player")[0];
+    if (!p) return;
+    var dir = can.pos.sub(p.pos);
+    if (dir.len() < 0.1) dir = vec2(1, 0);
+    tVel = dir.unit().scale(280);
+    can.color = rgb(150, 100, 55);
+    try { play("lyd_boks"); } catch(e) {}
+    wait(0.3, function() { tPushed = false; });
+  });
+
+  can.onCollide("soccer_ball", function() {
+    if (tPushed) return;
+    tPushed = true;
+    var balls = get("soccer_ball");
+    var dir = vec2(1, 0);
+    if (balls.length > 0) {
+      dir = can.pos.sub(balls[0].pos);
+      if (dir.len() < 0.1) dir = vec2(1, 0);
+    }
+    tVel = dir.unit().scale(380);
+    can.color = rgb(150, 100, 55);
+    try { play("lyd_boks"); } catch(e) {}
+    wait(0.3, function() { tPushed = false; });
+  });
+
+  can.onUpdate(function() {
+    if (gamePaused || tVel.len() < 2) { tVel = vec2(0, 0); return; }
+    can.move(tVel.x, tVel.y);
+    tVel = tVel.scale(0.88);
+  });
+
+  return can;
+}
+
+// ────────────────────────────────────────────────────────────
+// RAMP
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Adds a decorative ramp at (x, y) — 60×40 px triangle slanting right.
+ * Triggers a squash/stretch jump visual on the player when walked over.
+ */
+function addRamp(x, y, player) {
+  // Triangle visual
+  try {
+    add([polygon([vec2(0, 40), vec2(60, 40), vec2(60, 0)]),
+         pos(x, y), color(155, 125, 85), z(5)]);
+  } catch(e) {
+    add([rect(60, 40), pos(x, y), color(155, 125, 85), anchor("topleft"), z(5), opacity(0.7)]);
+  }
+  // Base strip
+  add([rect(62, 4), pos(x - 1, y + 37), color(100, 75, 45), anchor("topleft"), z(6)]);
+
+  // Jump stretch effect
+  var jumping  = false;
+  var jumpT    = 0;
+  var jumpBase = 2;
+
+  player.onUpdate(function() {
+    if (jumping) {
+      jumpT += dt() * 5;
+      var h = Math.max(0, Math.sin(jumpT));
+      player.scale = vec2(jumpBase * (1 - h * 0.20), jumpBase * (1 + h * 0.55));
+      if (jumpT > Math.PI) {
+        jumping = false;
+        player.scale = vec2(jumpBase, jumpBase);
+      }
+      return;
+    }
+    var inZone = player.pos.x > x && player.pos.x < x + 60 &&
+                 player.pos.y > y && player.pos.y < y + 40;
+    if (inZone) {
+      jumping  = true;
+      jumpT    = 0;
+      jumpBase = player.scale.x;
+      try { play("lyd_hopp"); } catch(e) {}
+    }
+  });
 }

@@ -10,6 +10,7 @@ let isMuted = false;
 let roomsSearched = {
   etasje2_stue: false, etasje2_mamma: false,
   etasje1_vetle: false, etasje1_ylva: false, etasje1_bad: false,
+  nabolag_venn: false,   // outdoor search in the neighbour's street
 };
 function allRoomsSearched() {
   return Object.values(roomsSearched).every(function(v) { return v; });
@@ -31,7 +32,7 @@ let inventory = [];
 
 // ── Quest state ───────────────────────────────────────────────
 let questState = {
-  searchRooms: { active: true, current: 0, total: 5 },
+  searchRooms: { active: true, current: 0, total: 6 },
   collectFish: { active: true, current: 0, total: 11 },
   waterQuest:  { active: true, step: "find_bowl" },
   lussiChase:  { active: false, status: "not_started" },
@@ -145,4 +146,22 @@ const SPAWNS = {
 
   // Gata
   "gata_default":                     vec2(195, 388),
+
+  // Nabolaget (neighbour street)
+  "nabolag_venn_default":             vec2(80, 430),
 };
+
+// ── Atmosphere ────────────────────────────────────────────────
+// isNight is set once at startup by checkTimeOfDay() (called in main.js)
+// and stays constant for the session (no live clock polling).
+let isNight = false;
+let playerOnBike = false;   // persists across scene transitions
+
+/**
+ * Reads the device clock and sets isNight.
+ * Night = 19:00 – 06:59. Call once before go("start").
+ */
+function checkTimeOfDay() {
+  var h = new Date().getHours();
+  isNight = (h >= 19 || h < 7);
+}

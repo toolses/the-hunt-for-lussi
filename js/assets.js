@@ -236,3 +236,21 @@ loadSound("vo_fant_skaal",        "assets/Voice/vo_fant_skaal.m4a");
 loadSound("vo_fyller_vann",       "assets/Voice/vo_fyller_vann.m4a");
 loadSound("vo_vann_ferdig",       "assets/Voice/vo_vann_ferdig.m4a");
 loadSound("vo_lussi_ikke_ute",    "assets/Voice/vo_lussi_ikke_ute.m4a");
+
+// ── Ambient audio placeholders ─────────────────────────────
+// Place the audio files in assets/Audio/ to enable them.
+loadSound("amb_rain",           "assets/Audio/amb_rain.mp3");
+loadSound("amb_night_crickets", "assets/Audio/amb_night_crickets.mp3");
+loadSound("amb_birds",          "assets/Audio/amb_birds.mp3");
+loadSound("amb_street_2",       "assets/Audio/amb_street_2.mp3");
+loadSound("lyd_bounce",         "assets/Audio/lyd_bounce.mp3");
+loadSound("vo_venn_hilsen",     "assets/Voice/vo_venn_hilsen.m4a");
+
+// ── Bicycle & physics sound placeholders ──────────────────────
+// Place the audio files in assets/Audio/ to enable them.
+loadSound("lyd_sykkel_ring",  "assets/Audio/lyd_sykkel_ring.mp3");
+loadSound("lyd_sykkel_kost",  "assets/Audio/lyd_sykkel_kost.mp3");
+loadSound("lyd_spark",        "assets/Audio/lyd_spark.mp3");
+loadSound("lyd_hopp",         "assets/Audio/lyd_hopp.mp3");
+loadSound("lyd_boks",         "assets/Audio/lyd_boks.mp3");
+loadSound("lyd_jubel",        "assets/Audio/lyd_jubel.mp3");
