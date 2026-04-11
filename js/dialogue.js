@@ -26,7 +26,7 @@ var DIALOGUE = {
 
   // Nabolaget — postboxes
   postbox_1: { text: "Du fant en tegning av Lussi! 🎨 Noen savner den nok!", vo: null, duration: 3 },
-  postbox_2: { text: "Her bor Emma! Kanskje hun vet noe om Lussi? 🏠",       vo: null, duration: 3 },
+  postbox_2: { text: "Her bor Maya! Kanskje hun vet noe om Lussi? 🏠",       vo: null, duration: 3 },
 
   // Nabolaget — NPC friend greeting
   venn_hilsen: {
@@ -35,7 +35,7 @@ var DIALOGUE = {
     duration: 4,
   },
 
-  // Nabolaget — Emma ball challenge
+  // Nabolaget — Maya ball challenge
   emma_challenge: {
     text: "Klarer du å dytte fotballen inn i naboens hage? Prøv! ⚽",
     vo:   null,

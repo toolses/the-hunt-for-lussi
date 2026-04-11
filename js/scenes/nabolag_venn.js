@@ -3,7 +3,7 @@
 //
 // World: 1200 × 800 px (same dimensions as "gata")
 // Two houses in a different arrangement, open central plaza,
-// NPC friend Emma, interactive postboxes, a toy ball,
+// NPC friend Maya, interactive postboxes, a toy ball,
 // and a Lussi hiding spot behind the far-right bush.
 //
 // Linked to "gata" via addTransitionZone on the LEFT edge.
@@ -98,7 +98,7 @@ scene("nabolag_venn", function(args) {
     function() { pb2Done = true; say("postbox_2"); }
   );
 
-  // ── NPC: Emma (venninne) ──────────────────────────────────────
+  // ── NPC: Maya (venninne) ──────────────────────────────────────
   var npc = add([
     sprite("vetle_idle_anim"),
     pos(480, 425),
@@ -112,7 +112,7 @@ scene("nabolag_venn", function(args) {
 
   // Navnelapp over NPC
   add([
-    text("Emma", { size: 12 }),
+    text("Maya", { size: 12 }),
     pos(480, 397),
     anchor("center"),
     color(255, 255, 200),
