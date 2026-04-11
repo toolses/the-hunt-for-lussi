@@ -23,6 +23,17 @@ var DIALOGUE = {
   // Room entry voice-overs (no on-screen text)
   enter_vetle:        { text: null, vo: null },
   enter_ylva:         { text: null, vo: null },
+
+  // Nabolaget — postboxes
+  postbox_1: { text: "Du fant en tegning av Lussi! 🎨 Noen savner den nok!", vo: null, duration: 3 },
+  postbox_2: { text: "Her bor Emma! Kanskje hun vet noe om Lussi? 🏠",       vo: null, duration: 3 },
+
+  // Nabolaget — NPC friend greeting
+  venn_hilsen: {
+    text: "Hei! Skal vi leke? Jeg tror Lussi løp den veien! 🐈",
+    vo:   "vo_venn_hilsen",
+    duration: 4,
+  },
 };
 
 // Safe VO playback — logs a placeholder when the audio file is missing.

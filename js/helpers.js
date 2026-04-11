@@ -1305,3 +1305,75 @@ function toggleRain(enable) {
     }
   }
 }
+
+// ────────────────────────────────────────────────────────────
+// SCENE TRANSITIONS — fade-to-black zone + fade-in
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Places an invisible collision zone (in world space) that, when the player
+ * enters it, saves progress, fades the screen to black, then jumps to
+ * `targetScene` with `{ startPos: targetPos }` so the new scene can spawn
+ * the player at the correct entrance position.
+ *
+ * Follows the same first-arg convention as onDoor(player, …).
+ */
+function addTransitionZone(player, x, y, w, h, targetScene, targetPos) {
+  var tag = "tz_" + targetScene;
+  add([
+    rect(w, h),
+    pos(x, y),
+    anchor("topleft"),
+    opacity(0),
+    area(),
+    z(1),
+    tag,
+  ]);
+
+  var transitioning = false;
+  player.onCollide(tag, function() {
+    if (transitioning || gamePaused) return;
+    transitioning = true;
+    gamePaused = true;
+    saveGame();
+
+    var fadeRect = add([
+      rect(width(), height()),
+      pos(0, 0),
+      color(0, 0, 0),
+      opacity(0),
+      fixed(),
+      z(999),
+    ]);
+    var elapsed = 0;
+    fadeRect.onUpdate(function() {
+      elapsed += dt();
+      fadeRect.opacity = Math.min(1, elapsed / 0.35);
+      if (elapsed >= 0.35) {
+        gamePaused = false;
+        go(targetScene, { startPos: targetPos });
+      }
+    });
+  });
+}
+
+/**
+ * Fades the screen from black to transparent at the start of a scene.
+ * Call right after makePlayer() whenever arriving via addTransitionZone.
+ */
+function sceneFadeIn() {
+  var fadeRect = add([
+    rect(width(), height()),
+    pos(0, 0),
+    color(0, 0, 0),
+    opacity(1),
+    fixed(),
+    z(999),
+  ]);
+  var elapsed = 0;
+  fadeRect.onUpdate(function() {
+    elapsed += dt();
+    fadeRect.opacity = Math.max(0, 1 - elapsed / 0.35);
+    if (elapsed >= 0.35) destroy(fadeRect);
+  });
+}

@@ -4,7 +4,8 @@
 
 scene("gata", function(args) {
   args = args || {};
-  var spawnPos = SPAWNS["gata_default"];
+  // Support startPos from addTransitionZone (neighbour street → gata)
+  var spawnPos = (args.startPos) ? args.startPos : SPAWNS["gata_default"];
 
   // ── Bakgrunn ─────────────────────────────────────────────────
   makeDeco(-25,   0, 1225, 800, [75, 145, 65]);
@@ -66,6 +67,60 @@ scene("gata", function(args) {
   setupGlobalUI();
   setupAtmosphere(player);
   toggleRain(true);
+
+  // Fade in when arriving via transition zone (from nabolag_venn)
+  if (args.startPos) sceneFadeIn();
+
+  // Ambient birds (quiet, under rain if raining)
+  try { play("amb_birds", { loop: true, volume: 0.12 }); } catch (e) {}
+
+  // ── Postboks (ved inngangsparti hus 1) ───────────────────────
+  add([rect(14, 20), pos(140, 354), color(140, 30, 30), anchor("topleft"), z(9)]);
+  add([rect(3, 28),  pos(148, 348), color(90, 90, 90),  anchor("topleft"), z(8)]);
+  var pb1Done = false;
+  addInteraction(
+    { pos: vec2(147, 364) },
+    function() { return !pb1Done; },
+    function() { pb1Done = true; say("postbox_1"); }
+  );
+
+  // ── Lekeball ─────────────────────────────────────────────────
+  // Rød gummiball som ruller når spilleren dytter den.
+  var ballVel = vec2(0, 0);
+  var ballPushed = false;
+  var ball = add([
+    circle(11),
+    pos(600, 470),
+    color(220, 70, 70),
+    area(),
+    body({ gravityScale: 0 }),
+    anchor("center"),
+    z(7),
+    "toy_ball",
+  ]);
+
+  player.onCollide("toy_ball", function() {
+    if (ballPushed) return;
+    ballPushed = true;
+    var pushDir = ball.pos.sub(player.pos);
+    if (pushDir.len() < 0.1) pushDir = vec2(1, 0);
+    ballVel = pushDir.unit().scale(320);
+    wait(0.25, function() { ballPushed = false; });
+  });
+
+  ball.onCollide("wall", function() {
+    ballVel = vec2(-ballVel.x * 0.55, -ballVel.y * 0.55);
+    try { play("lyd_bounce"); } catch (e) {}
+  });
+
+  ball.onUpdate(function() {
+    if (gamePaused || ballVel.len() < 2) { ballVel = vec2(0, 0); return; }
+    ball.move(ballVel.x, ballVel.y);
+    ballVel = ballVel.scale(0.91);
+  });
+
+  // ── Overgang til nabolaget (høyre kant) ──────────────────────
+  addTransitionZone(player, 1168, 340, 32, 420, "nabolag_venn", vec2(80, 430));
 
   // Kameragrenser
   player.onUpdate(function() {

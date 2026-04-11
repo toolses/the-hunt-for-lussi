@@ -241,3 +241,7 @@ loadSound("vo_lussi_ikke_ute",    "assets/Voice/vo_lussi_ikke_ute.m4a");
 // Place the audio files in assets/Audio/ to enable them.
 loadSound("amb_rain",           "assets/Audio/amb_rain.mp3");
 loadSound("amb_night_crickets", "assets/Audio/amb_night_crickets.mp3");
+loadSound("amb_birds",          "assets/Audio/amb_birds.mp3");
+loadSound("amb_street_2",       "assets/Audio/amb_street_2.mp3");
+loadSound("lyd_bounce",         "assets/Audio/lyd_bounce.mp3");
+loadSound("vo_venn_hilsen",     "assets/Voice/vo_venn_hilsen.m4a");
