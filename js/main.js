@@ -2,6 +2,10 @@
 // JAKTEN PÅ LUSSI — Entry point
 // ============================================================
 
+// Register Service Worker and set up Web Push support.
+// Must run before go("start") so the SW is ready as early as possible.
+initPushManager();
+
 go("start");
 
 // Ctrl+Shift+Q → jump to dev tool from any scene

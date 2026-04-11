@@ -837,7 +837,7 @@ function pauseGame() {
 
   add([
     text("PAUSE", { size: 36, align: "center" }),
-    pos(400, 200),
+    pos(400, 170),
     anchor("center"),
     color(255, 255, 255),
     fixed(),
@@ -847,8 +847,8 @@ function pauseGame() {
 
   // FORTSETT (Resume) button
   var fortsettBtn = add([
-    rect(260, 80, { radius: 12 }),
-    pos(400, 310),
+    rect(260, 72, { radius: 12 }),
+    pos(400, 270),
     anchor("center"),
     color(60, 150, 80),
     area(),
@@ -857,8 +857,8 @@ function pauseGame() {
     "pause_overlay",
   ]);
   add([
-    text("FORTSETT", { size: 28 }),
-    pos(400, 310),
+    text("FORTSETT", { size: 26 }),
+    pos(400, 270),
     anchor("center"),
     color(255, 255, 255),
     fixed(),
@@ -874,8 +874,8 @@ function pauseGame() {
 
   // HJEM (Home) button
   var hjemBtn = add([
-    rect(260, 80, { radius: 12 }),
-    pos(400, 420),
+    rect(260, 72, { radius: 12 }),
+    pos(400, 365),
     anchor("center"),
     color(160, 70, 60),
     area(),
@@ -884,8 +884,8 @@ function pauseGame() {
     "pause_overlay",
   ]);
   add([
-    text("HJEM", { size: 28 }),
-    pos(400, 420),
+    text("HJEM", { size: 26 }),
+    pos(400, 365),
     anchor("center"),
     color(255, 255, 255),
     fixed(),
@@ -898,6 +898,34 @@ function pauseGame() {
     gamePaused = false;
     saveGame();
     go("start");
+  });
+
+  // TILLAT VARSLINGER (Notifications) button
+  var notifBtn = add([
+    rect(260, 72, { radius: 12 }),
+    pos(400, 460),
+    anchor("center"),
+    color(60, 100, 160),
+    area(),
+    fixed(),
+    z(201),
+    "pause_overlay",
+  ]);
+  add([
+    text("🔔 Tillat Varslinger", { size: 20 }),
+    pos(400, 460),
+    anchor("center"),
+    color(255, 255, 255),
+    fixed(),
+    z(202),
+    "pause_overlay",
+  ]);
+  notifBtn.onHover(function()    { notifBtn.color = rgb(80, 130, 200); });
+  notifBtn.onHoverEnd(function() { notifBtn.color = rgb(60, 100, 160); });
+  notifBtn.onClick(function() {
+    get("pause_overlay").forEach(destroy);
+    gamePaused = false;
+    requestNotificationPermission();
   });
 }
 
